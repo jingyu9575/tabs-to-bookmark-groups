@@ -1,7 +1,7 @@
 manifest_version: 2
 browser_specific_settings:
 	gecko:
-		id: '@qw.thucfb.com'
+		id: 'bookmark-group-switch@qw.thucfb.com'
 		strict_min_version: '68.0'
 name: '__MSG_extensionName__'
 version: '0.1'
@@ -12,6 +12,9 @@ permissions: [
 	'storage'
 	'<all_urls>'
 	'tabs'
+	'bookmarks'
+	'sessions'
+	'browserSettings'
 ]
 browser_action:
 	default_icon: 'icons/icon-color.svg#dark'

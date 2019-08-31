@@ -1,2 +1,106 @@
 @import '../common/common.css'
-@import '../common/common.css'
+
+body
+	overflow: hidden
+	background-color: #fff
+
+#panel-size-request
+	width: 240px
+
+state-class(root, parent, name)
+	{root}:not([state={name}]) {parent} > .state-{name}
+		display: none
+
+	{root}[state={name}] {parent} > :not(.state-{name})
+		display: none
+
+#groups-wrapper
+	display: flex
+	flex-direction: column
+	flex: 1
+	overflow: auto
+
+#groups
+	display: flex
+	flex-direction: column
+
+x-group
+	display: flex
+
+	.group-button
+		flex: 1
+		border: none
+		margin: 0
+		background: transparent
+		color: inherit
+		font: inherit
+		line-height: normal
+		-moz-osx-font-smoothing: inherit
+		-webkit-appearance: none
+		display: flex
+		align-items: center
+		padding: 4px 8px
+		overflow: auto
+
+		&::-moz-focus-inner
+			border: 0
+			padding: 0
+
+		&:not([disabled]):focus
+			outline: 1px dotted blue
+			outline-offset: -1px
+
+		&:not([disabled]):hover
+			background-color: hsla(0, 0%, 0%, 0.08)
+
+	.group-icon
+		display: flex
+
+		.icon
+			width: 1.2em
+			height: 1.2em
+			margin-right: 0.8ch
+
+	state-class('&', '.group-icon', 'open')
+	state-class('&', '.group-icon', 'closed')
+	state-class('&', '.group-icon', 'locked')
+	state-class('&', '.group-icon', 'unsaved')
+
+	.group-name
+		overflow: hidden
+		white-space: nowrap
+		text-overflow: ellipsis
+
+	&[state='unsaved'] + &
+		border-block-start: 1px solid lightgray
+
+tool-button(size)
+	display: flex
+	appearance: none
+	-webkit-appearance: none
+	border: 0
+	padding: 0
+	background: none
+
+	&::-moz-focus-inner
+		border: 0
+		padding: 0
+
+	&:not([disabled]):focus
+		outline: 1px dotted blue
+
+	&:not([disabled]):hover
+		background-color: hsla(0, 0%, 0%, 0.1)
+
+	& > svg, & > img
+		width: size
+		height: size
+
+#toolbar
+	display: flex
+	background-color: #f1f2f3
+	padding: 1px
+
+	& > button
+		tool-button(16px)
+		padding: 6px

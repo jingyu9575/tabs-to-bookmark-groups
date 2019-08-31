@@ -1,4 +1,14 @@
 extensionName:
-	message: ''
+	message: '书签群组切换'
 extensionDescription:
 	message: ''
+bookmarkMarkerTitle:
+	message: '$1（标记）'
+createGroup:
+	message: '新建群组'
+currentWindow:
+	message: '当前窗口'
+groupName:
+	message: '群组名称：'
+unnamed:
+	message: '未命名'

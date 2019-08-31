@@ -2,5 +2,20 @@ extends ../common/base.i.pug
 append head
 	link(rel="stylesheet" href="panel.css")
 append body
-				
+	#panel-size-request
+	#groups-wrapper
+		#groups
+	#toolbar
+		button#create(data-i18n-title='createGroup')
+			svg.icon: use(href='../icons/photon-icons.svg#new')
+	
+	template#x-group-template
+		button.group-button
+			span.group-icon
+				svg.icon.state-open: use(href='../icons/extra-icons.svg#play')
+				svg.icon.state-closed: use(href='../icons/photon-icons.svg#folder')
+				svg.icon.state-locked: use(href='../icons/photon-icons.svg#secure')
+				svg.icon.state-unsaved: use(href='../icons/photon-icons.svg#window')
+			span.group-name
+
 	script(type='module' src='panel.js')

@@ -16,3 +16,10 @@ export function defineBooleanAttribute(T: { prototype: HTMLElement }, attr: stri
 		},
 	})
 }
+
+export function defineStringAttribute(T: { prototype: HTMLElement }, attr: string) {
+	Object.defineProperty(T.prototype, attr, {
+		get(this: HTMLElement) { return this.getAttribute(attr) || '' },
+		set(this: HTMLElement, value: string) { this.setAttribute(attr, value) },
+	})
+}

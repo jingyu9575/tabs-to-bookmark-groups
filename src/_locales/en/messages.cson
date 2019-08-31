@@ -1,4 +1,14 @@
 extensionName:
-	message: ''
+	message: 'Bookmark Group Switch'
 extensionDescription:
 	message: ''
+bookmarkMarkerTitle:
+	message: '$1 (Marker)'
+createGroup:
+	message: 'Create group'
+currentWindow:
+	message: 'Current window'
+groupName:
+	message: 'Group name:'
+unnamed:
+	message: 'Unnamed'

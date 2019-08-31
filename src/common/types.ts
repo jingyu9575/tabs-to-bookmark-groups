@@ -1,0 +1,1 @@
+export type GroupState = 'open' | 'closed' | 'locked' | 'unsaved'
