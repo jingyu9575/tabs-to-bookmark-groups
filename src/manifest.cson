@@ -1,0 +1,31 @@
+manifest_version: 2
+browser_specific_settings:
+	gecko:
+		id: '@qw.thucfb.com'
+		strict_min_version: '68.0'
+name: '__MSG_extensionName__'
+version: '0.1'
+description: '__MSG_extensionDescription__'
+icons:
+	'48': 'icons/icon.svg'
+permissions: [
+	'storage'
+	'<all_urls>'
+	'tabs'
+]
+browser_action:
+	default_icon: 'icons/icon-color.svg#dark'
+	theme_icons: [{
+		light: 'icons/icon-color.svg#light'
+		dark: 'icons/icon-color.svg#dark'
+		size: 48
+	}]
+	default_title: '__MSG_extensionName__'
+	default_popup: 'panel/panel.html'
+	browser_style: false
+background:
+	page: 'background/background.html'
+options_ui:
+	page: 'options/options.html'
+	browser_style: false
+default_locale: 'en'

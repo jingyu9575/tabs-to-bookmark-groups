@@ -1,0 +1,4 @@
+icons/icon.svg
+icons/icon-color.svg
+Based on [Firefox Photon Icons](http://design.firefox.com/icons/viewer/)
+Licensed under the Mozilla Public License, v. 2.0
