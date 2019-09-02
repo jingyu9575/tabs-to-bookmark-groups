@@ -1,7 +1,7 @@
 extensionName:
 	message: 'Bookmark Group Switch'
 extensionDescription:
-	message: ''
+	message: 'Save the tabs to a bookmark group and switch between different groups.'
 bookmarkMarkerTitle:
 	message: '$1 (Marker)'
 createGroup:
@@ -12,3 +12,11 @@ groupName:
 	message: 'Group name:'
 unnamed:
 	message: 'Unnamed'
+saveCurrentWindowAs:
+	message: 'Save current window as:'
+groupIsLocked:
+	message: 'This group is being used in another window.'
+copy:
+	message: 'Copy'
+urlIsRestricted:
+	message: 'Firefox does not allow extensions to open this type of addresses.'

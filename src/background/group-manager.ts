@@ -1,6 +1,7 @@
 import { M } from "../util/webext/i18n.js";
 import { CriticalSection } from "../util/promise.js";
 import { GroupState } from "../common/types.js";
+import { getWindowTabsToSave } from "../common/common.js";
 
 const KEY_GROUP = 'group'
 
@@ -11,8 +12,51 @@ export class GroupManager {
 	private static commitedTransactionURL = browser.runtime.getURL(
 		'/pages/transaction.html?committed=1')
 
+	private static urlConverter = new class {
+		private prefix = browser.runtime.getURL('pages/url.html?')
+
+		private readonly restrictedProtocols = new Set([
+			'chrome:', 'javascript:', 'data:', 'file:', 'about:', 'blob:'
+		])
+
+		private parse(url: string) {
+			if (url.startsWith(this.prefix)) {
+				try {
+					const { searchParams } = new URL(url)
+					return {
+						url: new URL(searchParams.get('url')!).href,
+						active: !!Number(searchParams.get('active')),
+					}
+				} catch { }
+			}
+			return { url, active: false }
+		}
+
+		toBookmark(v: { url: string, active: boolean }) {
+			const { url } = this.parse(v.url)
+			if (!v.active) return url
+			return this.prefix + new URLSearchParams({ url, active: '1' })
+		}
+
+		toTab(url: string) {
+			const result = this.parse(url)
+			const lc = result.url!.toLowerCase()
+			if (lc === 'about:blank')
+				return result
+			if (lc === 'about:newtab' || lc === 'about:home')
+				return { ...result, url: undefined }
+			try {
+				if (!this.restrictedProtocols.has(new URL(lc).protocol))
+					return result
+			} catch { }
+			return {
+				...result,
+				url: this.prefix + new URLSearchParams({ url: result.url })
+			}
+		}
+	}
+
 	private readonly criticalSection = new CriticalSection()
-	private newTabURL = ''
 	private rootId?: string
 	private readonly windowGroupMap = new Map<number, string | undefined>()
 
@@ -25,9 +69,6 @@ export class GroupManager {
 		browser.windows.onCreated.addListener(onCreated)
 		browser.windows.onRemoved.addListener(id => this.windowGroupMap.delete(id))
 		for (const w of windows) onCreated(w)
-
-		this.newTabURL = (await browser.browserSettings.newTabPageOverride
-			.get({})).value || ''
 	})
 
 	private async loadSubtree() {
@@ -90,23 +131,23 @@ export class GroupManager {
 		return this.criticalSection.sync(() => this.createGroupImpl(name))
 	}
 
-	switchGroup(windowId: number, groupId: string) {
+	switchGroup(windowId: number, groupId?: string, newGroupName?: string) {
 		return this.criticalSection.sync(async () => {
-			const oldTabs = (await browser.windows.get(windowId,
-				{ populate: true })).tabs!
-			if (oldTabs.length === 1 && [
-				'about:blank', 'about:newtab', this.newTabURL
-			].includes(oldTabs[0].url!))
-				oldTabs.splice(0, 1) // do not save a single blank tab
-
 			let oldGroupId = this.windowGroupMap.get(windowId)
 			try {
 				if (oldGroupId && (await browser.bookmarks.get(oldGroupId))[0]
 					.type !== 'folder')
 					oldGroupId = undefined
 			} catch { oldGroupId = undefined }
-			if (oldGroupId === undefined && oldTabs.length)
-				oldGroupId = (await this.createGroupImpl(M.unnamed))!.id
+
+			// do not create new group with single blank tab, if not saving directly
+			const oldTabs = await getWindowTabsToSave(windowId,
+				oldGroupId === undefined && groupId !== undefined)
+
+			if (oldGroupId === undefined && oldTabs.length) {
+				if (newGroupName === undefined) newGroupName = M.unnamed
+				oldGroupId = (await this.createGroupImpl(newGroupName))!.id
+			}
 
 			if (oldGroupId !== undefined) { // save old group
 				const bookmarks = await browser.bookmarks.getChildren(oldGroupId)
@@ -116,8 +157,12 @@ export class GroupManager {
 					parentId: oldGroupId,
 					title: 'Transaction', url: GroupManager.transactionURL
 				}))!
-				for (const { title, url } of oldTabs!)
-					await browser.bookmarks.create({ parentId: oldGroupId, title, url })
+				for (const { title, url, active } of oldTabs!)
+					await browser.bookmarks.create({
+						parentId: oldGroupId, title,
+						url: GroupManager.urlConverter.toBookmark(
+							{ url: url!, active })
+					})
 				await browser.bookmarks.update(transaction.id, {
 					title: 'Transaction (committed)',
 					url: GroupManager.commitedTransactionURL,
@@ -127,10 +172,15 @@ export class GroupManager {
 				await browser.bookmarks.remove(transaction.id)
 			}
 
-			this.windowGroupMap.set(windowId, undefined)
-			await browser.sessions.removeWindowValue(windowId, KEY_GROUP)
+			if (groupId === undefined) {
+				if (oldGroupId === undefined) return // unreachable
+				groupId = oldGroupId
+			}
 
-			{ // load new group
+			if (groupId !== oldGroupId) { // load new group
+				this.windowGroupMap.set(windowId, undefined)
+				await browser.sessions.removeWindowValue(windowId, KEY_GROUP)
+
 				const bookmarks = await browser.bookmarks.getChildren(groupId)
 				const coverTab = (await browser.tabs.create({
 					windowId, active: true,
@@ -145,14 +195,17 @@ export class GroupManager {
 					await browser.tabs.remove(filteredTabIds)
 				}
 				if (bookmarks.length) {
-					let firstTab: browser.tabs.Tab | undefined
+					let activeTab: browser.tabs.Tab | undefined
 					for (const { url } of bookmarks) {
-						const tab = await browser.tabs.create({
-							windowId, url: this.toOpenableURL(url!), active: false,
-						})
-						if (!firstTab) firstTab = tab
+						const t = GroupManager.urlConverter.toTab(url!)
+						try {
+							const tab = await browser.tabs.create({
+								windowId, url: t.url
+							})
+							if (!activeTab || t.active) activeTab = tab
+						} catch (error) { console.error(error) }
 					}
-					if (firstTab) browser.tabs.update(firstTab.id!, { active: true })
+					if (activeTab) browser.tabs.update(activeTab.id!, { active: true })
 					await browser.tabs.remove(coverTab.id!)
 				}
 			}
@@ -160,23 +213,5 @@ export class GroupManager {
 			this.windowGroupMap.set(windowId, groupId)
 			await browser.sessions.setWindowValue(windowId, KEY_GROUP, groupId)
 		})
-	}
-
-	private static readonly restrictedProtocols = new Set([
-		'chrome:', 'javascript:', 'data:', 'file:', 'about:',
-	])
-
-	private toOpenableURL(url: string) {
-		url = url.toLowerCase()
-		if (url === 'about:blank') return url
-		if (url === 'about:newtab') return undefined
-
-		try {
-			if (!GroupManager.restrictedProtocols.has(new URL(url).protocol))
-				return url
-		} catch { }
-
-		return browser.runtime.getURL('pages/restricted.html?') +
-			new URLSearchParams({ url })
 	}
 }

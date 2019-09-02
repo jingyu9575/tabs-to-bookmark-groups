@@ -1,33 +1,12 @@
 <?xml version='1.0' encoding='utf-8'?>
 <svg xmlns="http://www.w3.org/2000/svg">
 	<defs>
-		<symbol id="play" viewBox="0 0 16 16">
-			<path d="M 3,2 V 14 L 13,8 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+		<symbol id="play-filled" viewBox="0 0 16 16">
+			<path d="M 3,2 V 14 L 13,8 Z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
 		</symbol>
-		<symbol id="pause" viewBox="0 0 16 16">
-			<path d="M 4,2 V 14 M 12,2 V 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-		</symbol>
-		<symbol id="stop" viewBox="0 0 16 16">
-			<path d="m 14,14 -12,0 0,-12 12,0 z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-		</symbol>
-		<symbol id="file" viewBox="0 0 16 16">
-			<path d="M 8,1 H 2 V 15 H 14 V 7 M 6,1 h 3 l 5,5 v 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-			<path d="m 8,1 v 6 h 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-		</symbol>
-		<symbol id="picture" viewBox="0 0 16 16">
-			<rect y="1" x="1" height="14" width="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-			<circle r="0.75" cy="4.5" cx="6.5" fill="none" stroke="currentColor" stroke-width="1.5" />
-			<path d="m 3,15 9,-9 3,3 M 1.4142136,11 4,8 7,11" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" />
-		</symbol>
-		<clipPath id="adjust-clipPath1">
-			<rect fill="black" stroke="none" width="8" height="16" x="0" y="0" />
-		</clipPath>
-		<symbol id="adjust" viewBox="0 0 16 16">
-			<circle r="7" cy="8" cx="8" fill="none" stroke="currentColor" stroke-width="2" />
-			<circle r="7" cy="8" cx="8" clip-path="url(#adjust-clipPath1)" fill="currentColor" stroke="currentColor" stroke-width="2" />
-		</symbol>
-		<symbol id="clear" viewBox="0 0 16 16">
-			<path d="M 1,13 H 11 M 3,8 H 13 M 5,3 H 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+		<symbol id="bookmark-folder" viewBox="0 0 16 16">
+			<path fill="currentColor" d="M14 3H8.151L6.584 1.538A2 2 0 0 0 5.219 1H2a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zM5.219 3l1.072 1H2V3zM14 13H2V5h6v-.014c.05 0 .1.014.151.014H14z" />
+			<path fill="currentColor" d="M 11.138224,8.1893243 A 0.4400098,0.43999884 0 0 0 10.800216,7.8961251 L 9.1645796,7.6037258 8.3941624,6.0577299 a 0.4400098,0.43999884 0 0 0 -0.7876175,0 L 6.8357277,7.6037258 5.2032913,7.8953251 A 0.4400098,0.43999884 0 0 0 4.9572858,8.6289231 L 6.1281119,9.8877198 5.8845065,11.631715 a 0.4400098,0.43999884 0 0 0 0.6400142,0.4508 l 1.4756329,-0.769599 1.4760329,0.770799 a 0.4400098,0.43999884 0 0 0 0.6400145,-0.4508 L 9.8721953,9.8877198 11.042621,8.6293231 a 0.4400098,0.43999884 0 0 0 0.0956,-0.4399988 z" />
 		</symbol>
 	</defs>
 </svg>

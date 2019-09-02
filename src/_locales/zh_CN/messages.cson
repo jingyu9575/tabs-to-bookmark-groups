@@ -1,7 +1,7 @@
 extensionName:
 	message: '书签群组切换'
 extensionDescription:
-	message: ''
+	message: '将标签页保存为书签群组，并在不同的组之间切换。'
 bookmarkMarkerTitle:
 	message: '$1（标记）'
 createGroup:
@@ -12,3 +12,11 @@ groupName:
 	message: '群组名称：'
 unnamed:
 	message: '未命名'
+saveCurrentWindowAs:
+	message: '将当前窗口保存为：'
+groupIsLocked:
+	message: '这个群组正在另一个窗口中使用。'
+copy:
+	message: '复制'
+urlIsRestricted:
+	message: '火狐不允许扩展打开这类网址。'

@@ -1,6 +1,6 @@
 import { applyI18n, applyI18nAttr, M } from "../util/webext/i18n.js";
-import { importTemplate, defineBooleanAttribute, defineStringAttribute } from "../util/dom.js";
-import { backgroundRemote } from "../common/common.js";
+import { importTemplate, defineStringAttribute } from "../util/dom.js";
+import { backgroundRemote, getWindowTabsToSave } from "../common/common.js";
 import { GroupState } from "../common/types.js";
 
 applyI18n()
@@ -26,9 +26,21 @@ class XGroupElement extends HTMLElement {
 		this.buttonNode = this.querySelector('.group-button') as HTMLButtonElement
 		this.nameNode = this.querySelector('.group-name') as HTMLElement
 
-		this.buttonNode.addEventListener('click', () => {
-			if (windowId === undefined || this.groupId === undefined) return
-			backgroundRemote.switchGroup(windowId, this.groupId)
+		this.buttonNode.addEventListener('click', async () => {
+			if (windowId === undefined) return
+			if (this.state === 'locked') {
+				alert(M.groupIsLocked)
+				return
+			}
+
+			let newGroupName: string | null | undefined = undefined
+			if (this.state === 'unsaved' ||
+				XGroupElement.parent.querySelector('.group[state="unsaved"]') &&
+				(await getWindowTabsToSave(windowId, true)).length) {
+				newGroupName = prompt(M.saveCurrentWindowAs, M.unnamed)
+				if (newGroupName == null) return
+			}
+			backgroundRemote.switchGroup(windowId, this.groupId, newGroupName)
 			location.reload()
 		})
 
@@ -42,9 +54,7 @@ class XGroupElement extends HTMLElement {
 	static readonly observedAttributes = ['state', 'name'] as const
 	attributeChangedCallback(name: typeof XGroupElement.observedAttributes[number],
 		_oldValue: string | null, newValue: string | null) {
-		if (name === 'state') {
-			this.buttonNode.disabled = newValue !== 'closed'
-		} else if (name === 'name') {
+		if (name === 'name') {
 			this.nameNode.textContent = newValue || ''
 		}
 	}

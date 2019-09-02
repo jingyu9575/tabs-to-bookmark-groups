@@ -1,0 +1,9 @@
+extends ../common/base.i.pug
+append head
+	link(rel="stylesheet" href="url.css")
+append body
+	#url-row
+		input#url(readonly)
+		button#copy(data-i18n='copy')
+	#restricted-desc(data-i18n='urlIsRestricted')
+	script(type='module' src='url.js')
