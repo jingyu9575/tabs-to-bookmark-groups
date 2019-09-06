@@ -1,7 +1,7 @@
 manifest_version: 2
 browser_specific_settings:
 	gecko:
-		id: 'bookmark-group-switch@qw.thucfb.com'
+		id: 'tabs-to-bookmark-groups@qw.thucfb.com'
 		strict_min_version: '68.0'
 name: '__MSG_extensionName__'
 version: '0.0dev'

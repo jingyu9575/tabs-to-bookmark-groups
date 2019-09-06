@@ -1,5 +1,5 @@
 extensionName:
-	message: '书签群组切换'
+	message: '标签页保存书签群组'
 extensionDescription:
 	message: '将标签页保存为书签群组，并在不同的组之间切换。'
 bookmarkMarkerTitle:

@@ -1,5 +1,5 @@
 extensionName:
-	message: 'Bookmark Group Switch'
+	message: 'Tabs to Bookmark Groups'
 extensionDescription:
 	message: 'Save the tabs to a bookmark group and switch between different groups.'
 bookmarkMarkerTitle:
