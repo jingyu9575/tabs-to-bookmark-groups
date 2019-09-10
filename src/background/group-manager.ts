@@ -203,7 +203,8 @@ export class GroupManager {
 						const t = GroupManager.urlConverter.toTab(url!)
 						try {
 							const tab = await browser.tabs.create({
-								windowId, url: t.url
+								windowId, url: t.url,
+								discarded: S.discardInactiveTabs,
 							})
 							if (!activeTab || t.active) activeTab = tab
 						} catch (error) { console.error(error) }

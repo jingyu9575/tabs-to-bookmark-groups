@@ -24,3 +24,5 @@ general:
 	message: 'General'
 excludePinnedTabs:
 	message: 'Exclude pinned tabs'
+discardInactiveTabs:
+	message: 'Unload inactive tabs after switching groups'

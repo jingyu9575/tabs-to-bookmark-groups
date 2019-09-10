@@ -24,3 +24,5 @@ general:
 	message: '常规'
 excludePinnedTabs:
 	message: '排除已固定标签页'
+discardInactiveTabs:
+	message: '切换群组后不载入非活动标签页'
