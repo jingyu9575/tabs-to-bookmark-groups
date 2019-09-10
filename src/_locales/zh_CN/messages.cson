@@ -20,3 +20,7 @@ copy:
 	message: '复制'
 urlIsRestricted:
 	message: '火狐不允许扩展打开这类网址。'
+general:
+	message: '常规'
+excludePinnedTabs:
+	message: '排除已固定标签页'

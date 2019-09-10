@@ -12,6 +12,7 @@ html
 body
 	font: caption
 	font-size: 14px
+	user-select: none
 	-webkit-user-select: none
 
 button, input, select
@@ -20,5 +21,18 @@ button, input, select
 [hidden]
 	display: none !important
 
-.spacer
-	flex: 1
+.icon-text
+	> .icon
+		width: 1em
+		height: 1em
+		margin-right: 0.6ch
+
+	> *
+		vertical-align: middle
+
+.input-label
+	> *
+		vertical-align: middle
+
+	> span:not(:last-child)
+		padding-right: 0.6ch

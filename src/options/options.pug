@@ -2,5 +2,14 @@ extends ../common/base.i.pug
 append head
 	link(rel="stylesheet" href="options.css")
 append body
-	
+	x-tabs
+		x-tabs-nav(tabindex='0')
+			x-tab.icon-text(active)
+				svg.icon: use(href='../icons/photon-icons.svg#preferences')
+				span(data-i18n='general')
+		x-tabs-main(same-size)
+			x-page(active)
+				label.input-label
+					input(type='checkbox' data-key='excludePinnedTabs')
+					span(data-i18n='excludePinnedTabs')
 	script(type='module' src='options.js')

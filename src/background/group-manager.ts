@@ -2,6 +2,7 @@ import { M } from "../util/webext/i18n.js";
 import { CriticalSection } from "../util/promise.js";
 import { GroupState } from "../common/types.js";
 import { getWindowTabsToSave } from "../common/common.js";
+import { S } from "./settings.js";
 
 const KEY_GROUP = 'group'
 
@@ -187,8 +188,10 @@ export class GroupManager {
 					url: bookmarks.length ? 'about:blank' : undefined,
 				}))!
 				for (; ;) {
-					const tabIds = (await browser.windows.get(windowId,
-						{ populate: true })).tabs!.map(v => v.id!)
+					let tabs = (await browser.windows.get(windowId,
+						{ populate: true })).tabs!
+					if (S.excludePinnedTabs) tabs = tabs.filter(v => !v.pinned)
+					const tabIds = tabs.map(v => v.id!)
 					const filteredTabIds = tabIds.filter(v => v !== coverTab.id)
 					if (filteredTabIds.length === tabIds.length) return
 					if (!filteredTabIds.length) break

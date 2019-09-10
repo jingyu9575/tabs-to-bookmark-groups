@@ -1,1 +1,32 @@
 @import '../common/common.css'
+@import '../common/elements/x-tab.css'
+
+html
+	height: unset
+
+x-tab
+	display: flex
+	align-items: center
+
+x-page
+	background-color: #f9f9fa
+	padding: 8px
+	display: flex
+	flex-direction: column
+
+	> *
+		margin-bottom: 4px
+
+.input-label
+	input[type='text'], input:not([type])
+		width: 12ch
+
+	input[type='number']
+		width: 12ch
+
+	input.font-input
+		width: 20ch
+
+hr
+	margin-block-start: 1em 0 0 0
+	border: none

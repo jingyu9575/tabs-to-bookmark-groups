@@ -20,3 +20,7 @@ copy:
 	message: 'Copy'
 urlIsRestricted:
 	message: 'Firefox does not allow extensions to open this type of addresses.'
+general:
+	message: 'General'
+excludePinnedTabs:
+	message: 'Exclude pinned tabs'

@@ -1,12 +1,15 @@
 import { remoteProxy } from '../util/webext/remote.js';
+import { remoteSettings } from './settings.js';
 
 export const backgroundRemote =
 	remoteProxy<import('../background/background').BackgroundRemote>('BackgroundRemote')
 
 export async function getWindowTabsToSave(windowId: number,
 	discardSingleBlank: boolean) {
-	const tabs = (await browser.windows.get(windowId,
+	let tabs = (await browser.windows.get(windowId,
 		{ populate: true })).tabs!
+	if (await remoteSettings.get('excludePinnedTabs'))
+		tabs = tabs.filter(v => !v.pinned)
 	if (discardSingleBlank && tabs.length === 1) {
 		const url = tabs[0].url!.toLowerCase()
 		if (['about:blank', 'about:newtab', 'about:home'].includes(url))
