@@ -90,7 +90,7 @@ export class GroupManager {
 				index: 0, title: M.extensionName
 			}))!
 			await browser.bookmarks.create({
-				parentId: root.id,
+				parentId: root.id, index: 0,
 				url: GroupManager.markerURL,
 				title: M('bookmarkMarkerTitle', M.extensionName)
 			})
@@ -126,6 +126,7 @@ export class GroupManager {
 		return browser.bookmarks.create({
 			parentId: this.rootId,
 			title: name,
+			index: Number.MAX_SAFE_INTEGER,
 		})
 	}
 	createGroup(name: string) {
@@ -156,13 +157,15 @@ export class GroupManager {
 				// TODO recovery
 				const transaction = (await browser.bookmarks.create({
 					parentId: oldGroupId,
-					title: 'Transaction', url: GroupManager.transactionURL
+					title: 'Transaction', url: GroupManager.transactionURL,
+					index: Number.MAX_SAFE_INTEGER,
 				}))!
 				for (const { title, url, active } of oldTabs!)
 					await browser.bookmarks.create({
 						parentId: oldGroupId, title,
 						url: GroupManager.urlConverter.toBookmark(
-							{ url: url!, active })
+							{ url: url!, active }),
+						index: Number.MAX_SAFE_INTEGER,
 					})
 				await browser.bookmarks.update(transaction.id, {
 					title: 'Transaction (committed)',
@@ -186,6 +189,7 @@ export class GroupManager {
 				const coverTab = (await browser.tabs.create({
 					windowId, active: true,
 					url: bookmarks.length ? 'about:blank' : undefined,
+					index: Number.MAX_SAFE_INTEGER,
 				}))!
 				for (; ;) {
 					let tabs = (await browser.windows.get(windowId,
@@ -205,6 +209,7 @@ export class GroupManager {
 							const tab = await browser.tabs.create({
 								windowId, url: t.url,
 								discarded: S.discardInactiveTabs,
+								index: Number.MAX_SAFE_INTEGER,
 							})
 							if (!activeTab || t.active) activeTab = tab
 						} catch (error) { console.error(error) }
