@@ -6,6 +6,8 @@ import { S } from "./settings.js";
 
 const KEY_GROUP = 'group'
 
+type TabsCreateDetails = Parameters<typeof browser.tabs.create>[0]
+
 export class GroupManager {
 	private static markerURL = browser.runtime.getURL('/pages/marker.html')
 	private static transactionURL = browser.runtime.getURL(
@@ -13,47 +15,56 @@ export class GroupManager {
 	private static commitedTransactionURL = browser.runtime.getURL(
 		'/pages/transaction.html?committed=1')
 
-	private static urlConverter = new class {
-		private prefix = browser.runtime.getURL('pages/url.html?')
+	private static converter = new class {
+		private readonly restrictedURL = browser.runtime.getURL('pages/url.html?')
 
 		private readonly restrictedProtocols = new Set([
 			'chrome:', 'javascript:', 'data:', 'file:', 'about:', 'blob:'
 		])
 
-		private parse(url: string) {
-			if (url.startsWith(this.prefix)) {
+		private readonly prefixes = [ // reverse order
+			{ key: 'active', prefix: '\u25B6\uFE0E' },
+			{ key: 'pinned', prefix: '\uD83D\uDCCC\uFE0E' },
+		] as const
+
+		toBookmark(tab: browser.tabs.Tab): browser.bookmarks.CreateDetails {
+			let url = tab.url!
+			if (url.startsWith(this.restrictedURL)) {
 				try {
 					const { searchParams } = new URL(url)
-					return {
-						url: new URL(searchParams.get('url')!).href,
-						active: !!Number(searchParams.get('active')),
-					}
+					url = new URL(searchParams.get('url')!).href
 				} catch { }
 			}
-			return { url, active: false }
+			let title = this.trimPrefix(tab.title || url, {})
+			for (const { key, prefix } of this.prefixes)
+				if (tab[key])
+					title = prefix + ' ' + title
+			return { url, title }
 		}
 
-		toBookmark(v: { url: string, active: boolean }) {
-			const { url } = this.parse(v.url)
-			if (!v.active) return url
-			return this.prefix + new URLSearchParams({ url, active: '1' })
-		}
-
-		toTab(url: string) {
-			const result = this.parse(url)
-			const lc = result.url!.toLowerCase()
-			if (lc === 'about:blank')
-				return result
-			if (lc === 'about:newtab' || lc === 'about:home')
-				return { ...result, url: undefined }
-			try {
-				if (!this.restrictedProtocols.has(new URL(lc).protocol))
-					return result
-			} catch { }
-			return {
-				...result,
-				url: this.prefix + new URLSearchParams({ url: result.url })
+		private trimPrefix(title: string, result: TabsCreateDetails): string {
+			for (const { key, prefix } of this.prefixes) {
+				if (!title.startsWith(prefix)) continue
+				result[key] = true
+				return this.trimPrefix(title.slice(prefix.length).trimStart(), result)
 			}
+			return title
+		}
+
+		toTab(bookmark: browser.bookmarks.BookmarkTreeNode): TabsCreateDetails {
+			let url: string | undefined = bookmark.url!
+			const lc = url.toLowerCase()
+			if (lc === 'about:newtab' || lc === 'about:home')
+				url = undefined
+			else try {
+				if (this.restrictedProtocols.has(new URL(lc).protocol)
+					&& lc !== 'about:blank')
+					url = this.restrictedURL + new URLSearchParams({ url })
+			} catch { }
+
+			const details: TabsCreateDetails = {}
+			const title = this.trimPrefix(bookmark.title, details)
+			return { url, title, ...details }
 		}
 	}
 
@@ -160,12 +171,11 @@ export class GroupManager {
 					title: 'Transaction', url: GroupManager.transactionURL,
 					index: Number.MAX_SAFE_INTEGER,
 				}))!
-				for (const { title, url, active } of oldTabs!)
+				for (const tab of oldTabs!)
 					await browser.bookmarks.create({
-						parentId: oldGroupId, title,
-						url: GroupManager.urlConverter.toBookmark(
-							{ url: url!, active }),
+						parentId: oldGroupId,
 						index: Number.MAX_SAFE_INTEGER,
+						...GroupManager.converter.toBookmark(tab)
 					})
 				await browser.bookmarks.update(transaction.id, {
 					title: 'Transaction (committed)',
@@ -203,15 +213,17 @@ export class GroupManager {
 				}
 				if (bookmarks.length) {
 					let activeTab: browser.tabs.Tab | undefined
-					for (const { url } of bookmarks) {
-						const t = GroupManager.urlConverter.toTab(url!)
+					for (const bookmark of bookmarks) {
+						const v = GroupManager.converter.toTab(bookmark)
+						v.discarded = S.discardInactiveTabs && !v.pinned && !!v.url &&
+							!v.url.trimStart().toLowerCase().startsWith('about:')
+						if (!v.discarded) delete v.title
 						try {
 							const tab = await browser.tabs.create({
-								windowId, url: t.url,
-								discarded: S.discardInactiveTabs,
-								index: Number.MAX_SAFE_INTEGER,
+								windowId, index: Number.MAX_SAFE_INTEGER,
+								...v, active: false,
 							})
-							if (!activeTab || t.active) activeTab = tab
+							if (!activeTab || v.active) activeTab = tab
 						} catch (error) { console.error(error) }
 					}
 					if (activeTab) browser.tabs.update(activeTab.id!, { active: true })
