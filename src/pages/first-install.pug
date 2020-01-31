@@ -1,0 +1,8 @@
+extends ../common/base.i.pug
+append head
+	link(rel="stylesheet" href="first-install.css")
+append body
+	h1(data-i18n='extensionName')
+	h2(data-i18n='enableBrowserRestoreSessionDesc')
+	img(src='./first-install.png' alt='Screenshot' width='960')
+	script(type='module' src='first-install.js')

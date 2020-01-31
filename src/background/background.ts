@@ -14,3 +14,8 @@ export class BackgroundRemote {
 	}
 }
 registerRemoteHandler(new BackgroundRemote)
+
+browser.runtime.onInstalled.addListener(({ reason, temporary }) => {
+	if (reason === 'install' && !temporary)
+		browser.tabs.create({ url: '/pages/first-install.html' });
+})

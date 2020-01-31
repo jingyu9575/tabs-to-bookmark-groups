@@ -26,3 +26,5 @@ excludePinnedTabs:
 	message: 'Exclude pinned tabs'
 discardInactiveTabs:
 	message: 'Unload inactive tabs after switching groups'
+enableBrowserRestoreSessionDesc:
+	message: 'Please enable "Restore previous session" in Firefox options.'
