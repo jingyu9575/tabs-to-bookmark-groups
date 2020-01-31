@@ -204,20 +204,23 @@ export class GroupManager {
 				await browser.sessions.removeWindowValue(windowId, KEY_GROUP)
 
 				const bookmarks = await browser.bookmarks.getChildren(groupId)
-				const coverTab = (await browser.tabs.create({
-					windowId, active: true,
-					url: bookmarks.length ? 'about:blank' : undefined,
-					index: Number.MAX_SAFE_INTEGER,
-				}))!
+				let coverTab: browser.tabs.Tab | undefined
+
 				for (; ;) {
 					let tabs = (await browser.windows.get(windowId,
 						{ populate: true })).tabs!
+					const allTabsLength = tabs.length
 					if (S.excludePinnedTabs) tabs = tabs.filter(v => !v.pinned)
-					const tabIds = tabs.map(v => v.id!)
-					const filteredTabIds = tabIds.filter(v => v !== coverTab.id)
-					if (filteredTabIds.length === tabIds.length) return
-					if (!filteredTabIds.length) break
-					await browser.tabs.remove(filteredTabIds)
+					if (coverTab) tabs = tabs.filter(v => v.id !== coverTab!.id)
+					if (tabs.length === allTabsLength) {
+						coverTab = await browser.tabs.create({
+							windowId, active: true,
+							url: bookmarks.length ? 'about:blank' : undefined,
+							index: Number.MAX_SAFE_INTEGER,
+						})
+					}
+					if (!tabs.length) break
+					await browser.tabs.remove(tabs.map(v => v.id!))
 				}
 				if (bookmarks.length) {
 					let activeTab: browser.tabs.Tab | undefined
@@ -241,8 +244,11 @@ export class GroupManager {
 								await browser.tabs.update(tab!.id!, { pinned: true })
 						} catch (error) { console.error(error) }
 					}
-					if (activeTab) browser.tabs.update(activeTab.id!, { active: true })
-					await browser.tabs.remove(coverTab.id!)
+					if (coverTab) {
+						if (activeTab)
+							browser.tabs.update(activeTab.id!, { active: true })
+						await browser.tabs.remove(coverTab.id!)
+					} // leave active tab as-is if !coverTab
 				}
 			}
 
