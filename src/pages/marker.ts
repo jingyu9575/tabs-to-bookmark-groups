@@ -1,1 +1,0 @@
-location.replace('/panel/panel.html')
