@@ -70,7 +70,7 @@ export class GroupManager {
 	}
 
 	private readonly criticalSection = new CriticalSection()
-	private rootId?: string
+	private cachedRootId?: string
 	private readonly windowGroupMap = new Map<number, string | undefined>()
 	private readonly windowManager = new WindowManager()
 
@@ -94,19 +94,18 @@ export class GroupManager {
 		for (const w of windows) void onCreated(w)
 	})
 
-	private async loadSubtree() {
-		if (this.rootId !== undefined) {
+	private async rootId() {
+		if (this.cachedRootId !== undefined) {
 			try {
-				return (await browser.bookmarks.getSubTree(this.rootId))[0]
-			} catch { }
+				const roots = await browser.bookmarks.get([this.cachedRootId])
+				if (roots.length && roots[0].type === 'folder')
+					return this.cachedRootId
+			} catch { this.cachedRootId = undefined }
 		}
 
-		const marker = (await browser.bookmarks.search({
-			url: GroupManager.markerURL
-		}))[0]
-
-		if (marker) {
-			this.rootId = marker.parentId!
+		const markers = await browser.bookmarks.search({ url: GroupManager.markerURL })
+		if (markers.length) {
+			this.cachedRootId = markers[0].parentId!
 		} else {
 			const root = (await browser.bookmarks.create({
 				index: 0, title: M.extensionName
@@ -116,24 +115,24 @@ export class GroupManager {
 				url: GroupManager.markerURL,
 				title: M('bookmarkMarkerTitle', M.extensionName)
 			})
-			this.rootId = root.id
+			this.cachedRootId = root.id
 		}
-		return (await browser.bookmarks.getSubTree(this.rootId))[0]
+		return this.cachedRootId
 	}
 
-	async listGroups(windowId: number) {
+	listGroups(windowId: number) {
 		return this.criticalSection.sync(async () => {
 			const currentGroup = this.windowGroupMap.get(windowId)
 			const lockedGroups = new Set(this.windowGroupMap.values())
 			let hasOpenGroup = false
-			const groups = (await this.loadSubtree()).children!
-				.filter(v => v.type === 'folder').map(v => ({
-					id: v.id as string | undefined,
-					name: v.title,
-					size: v.children!.length,
-					state: v.id === currentGroup ? (hasOpenGroup = true, 'open') :
-						lockedGroups.has(v.id) ? 'locked' : 'closed' as GroupState
-				}))
+			const [root] = await browser.bookmarks.getSubTree(await this.rootId())
+			const groups = root.children!.filter(v => v.type === 'folder').map(v => ({
+				id: v.id as string | undefined,
+				name: v.title,
+				size: v.children!.length,
+				state: v.id === currentGroup ? (hasOpenGroup = true, 'open') :
+					lockedGroups.has(v.id) ? 'locked' : 'closed' as GroupState
+			}))
 			if (!hasOpenGroup) {
 				groups.unshift({
 					id: undefined, name: M.currentWindow, size: NaN, state: 'unsaved',
@@ -144,9 +143,8 @@ export class GroupManager {
 	}
 
 	private async createGroupImpl(name: string) {
-		await this.loadSubtree() // ensure rootId
 		return browser.bookmarks.create({
-			parentId: this.rootId,
+			parentId: await this.rootId(),
 			title: name,
 			index: Number.MAX_SAFE_INTEGER,
 		})
@@ -251,7 +249,7 @@ export class GroupManager {
 		try {
 			const bookmark = (await browser.bookmarks.get([id]))[0]
 			return bookmark && bookmark.type === 'folder'
-				&& bookmark.parentId === this.rootId
+				&& bookmark.parentId === await this.rootId()
 		} catch { return false }
 	}
 }
