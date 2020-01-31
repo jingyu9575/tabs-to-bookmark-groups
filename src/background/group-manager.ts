@@ -3,6 +3,7 @@ import { CriticalSection } from "../util/promise.js";
 import { GroupState } from "../common/types.js";
 import { getWindowTabsToSave } from "../common/common.js";
 import { S } from "./settings.js";
+import { PartialTab, WindowManager } from "./window-manager.js";
 
 const KEY_GROUP = 'group'
 
@@ -27,7 +28,7 @@ export class GroupManager {
 			{ key: 'pinned', prefix: '\uD83D\uDCCC\uFE0E' },
 		] as const
 
-		toBookmark(tab: browser.tabs.Tab): browser.bookmarks.CreateDetails {
+		toBookmark(tab: PartialTab): browser.bookmarks.CreateDetails {
 			let url = tab.url!
 			if (url.startsWith(this.restrictedURL)) {
 				try {
@@ -71,6 +72,7 @@ export class GroupManager {
 	private readonly criticalSection = new CriticalSection()
 	private rootId?: string
 	private readonly windowGroupMap = new Map<number, string | undefined>()
+	private readonly windowManager = new WindowManager()
 
 	protected readonly initialization = this.criticalSection.sync(async () => {
 		const windows = await browser.windows.getAll()
@@ -79,8 +81,17 @@ export class GroupManager {
 				group => { this.windowGroupMap.set(id!, group as string) })
 		}
 		browser.windows.onCreated.addListener(onCreated)
-		browser.windows.onRemoved.addListener(id => this.windowGroupMap.delete(id))
-		for (const w of windows) onCreated(w)
+		this.windowManager.onWindowRemoved.listen((windowId, tabs) => {
+			const groupId = this.windowGroupMap.get(windowId)
+			if (groupId === undefined) return
+			this.windowGroupMap.delete(windowId)
+			this.criticalSection.sync(async () => {
+				if (!await this.isValidGroupId(groupId)) return
+				await this.saveGroupImpl(groupId, tabs)
+			})
+		})
+
+		for (const w of windows) void onCreated(w)
 	})
 
 	private async loadSubtree() {
@@ -133,61 +144,60 @@ export class GroupManager {
 	}
 
 	private async createGroupImpl(name: string) {
-		if (this.rootId === undefined) await this.loadSubtree()
+		await this.loadSubtree() // ensure rootId
 		return browser.bookmarks.create({
 			parentId: this.rootId,
 			title: name,
 			index: Number.MAX_SAFE_INTEGER,
 		})
 	}
+
 	createGroup(name: string) {
 		return this.criticalSection.sync(() => this.createGroupImpl(name))
 	}
 
-	switchGroup(windowId: number, groupId?: string, newGroupName?: string) {
+	private async saveGroupImpl(groupId: string, tabs: PartialTab[]) {
+		const bookmarks = await browser.bookmarks.getChildren(groupId)
+		// TODO recovery
+		const transaction = (await browser.bookmarks.create({
+			parentId: groupId,
+			title: 'Transaction', url: GroupManager.transactionURL,
+			index: Number.MAX_SAFE_INTEGER,
+		}))!
+		for (const tab of tabs!)
+			await browser.bookmarks.create({
+				parentId: groupId,
+				index: Number.MAX_SAFE_INTEGER,
+				...GroupManager.converter.toBookmark(tab)
+			})
+		await browser.bookmarks.update(transaction.id, {
+			title: 'Transaction (committed)',
+			url: GroupManager.commitedTransactionURL,
+		})
+		for (const { id } of bookmarks)
+			await browser.bookmarks.remove(id)
+		await browser.bookmarks.remove(transaction.id)
+	}
+
+	switchGroup(windowId: number, groupId?: string, unsavedGroupName?: string) {
 		return this.criticalSection.sync(async () => {
 			let oldGroupId = this.windowGroupMap.get(windowId)
-			try {
-				if (oldGroupId && (await browser.bookmarks.get(oldGroupId))[0]
-					.type !== 'folder')
-					oldGroupId = undefined
-			} catch { oldGroupId = undefined }
+			if (!await this.isValidGroupId(oldGroupId)) oldGroupId = undefined
 
 			// do not create new group with single blank tab, if not saving directly
 			const oldTabs = await getWindowTabsToSave(windowId,
 				oldGroupId === undefined && groupId !== undefined)
 
-			if (oldGroupId === undefined && oldTabs.length) {
-				if (newGroupName === undefined) newGroupName = M.unnamed
-				oldGroupId = (await this.createGroupImpl(newGroupName))!.id
-			}
+			if (oldGroupId === undefined && oldTabs.length
+				&& unsavedGroupName !== undefined)
+				oldGroupId = (await this.createGroupImpl(unsavedGroupName))!.id
 
 			if (oldGroupId !== undefined) { // save old group
-				const bookmarks = await browser.bookmarks.getChildren(oldGroupId)
-
-				// TODO recovery
-				const transaction = (await browser.bookmarks.create({
-					parentId: oldGroupId,
-					title: 'Transaction', url: GroupManager.transactionURL,
-					index: Number.MAX_SAFE_INTEGER,
-				}))!
-				for (const tab of oldTabs!)
-					await browser.bookmarks.create({
-						parentId: oldGroupId,
-						index: Number.MAX_SAFE_INTEGER,
-						...GroupManager.converter.toBookmark(tab)
-					})
-				await browser.bookmarks.update(transaction.id, {
-					title: 'Transaction (committed)',
-					url: GroupManager.commitedTransactionURL,
-				})
-				for (const { id } of bookmarks)
-					await browser.bookmarks.remove(id)
-				await browser.bookmarks.remove(transaction.id)
+				await this.saveGroupImpl(oldGroupId, oldTabs)
 			}
 
 			if (groupId === undefined) {
-				if (oldGroupId === undefined) return // unreachable
+				if (oldGroupId === undefined) return // unsaved window is closed
 				groupId = oldGroupId
 			}
 
@@ -234,5 +244,14 @@ export class GroupManager {
 			this.windowGroupMap.set(windowId, groupId)
 			await browser.sessions.setWindowValue(windowId, KEY_GROUP, groupId)
 		})
+	}
+
+	private async isValidGroupId(id?: string) {
+		if (id === undefined) return false
+		try {
+			const bookmark = (await browser.bookmarks.get([id]))[0]
+			return bookmark && bookmark.type === 'folder'
+				&& bookmark.parentId === this.rootId
+		} catch { return false }
 	}
 }

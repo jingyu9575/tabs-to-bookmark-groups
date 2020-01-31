@@ -7,8 +7,8 @@ export class BackgroundRemote {
 	listGroups(windowId: number) { return groupManager.listGroups(windowId) }
 	createGroup(name: string) { return groupManager.createGroup(name) }
 
-	switchGroup(windowId: number, groupId?: string, newGroupName?: string) {
-		const promise = groupManager.switchGroup(windowId, groupId, newGroupName)
+	switchGroup(windowId: number, groupId?: string, unsavedGroupName?: string) {
+		const promise = groupManager.switchGroup(windowId, groupId, unsavedGroupName)
 		promise.catch(console.error)
 		return promise
 	}

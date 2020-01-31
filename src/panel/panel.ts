@@ -33,14 +33,14 @@ class XGroupElement extends HTMLElement {
 				return
 			}
 
-			let newGroupName: string | null | undefined = undefined
+			let unsavedGroupName: string | null = M.unnamed
 			if (this.state === 'unsaved' ||
 				XGroupElement.parent.querySelector('.group[state="unsaved"]') &&
 				(await getWindowTabsToSave(windowId, true)).length) {
-				newGroupName = prompt(M.saveCurrentWindowAs, M.unnamed)
-				if (newGroupName == null) return
+				unsavedGroupName = prompt(M.saveCurrentWindowAs, M.unnamed)
+				if (unsavedGroupName == null) return
 			}
-			backgroundRemote.switchGroup(windowId, this.groupId, newGroupName)
+			backgroundRemote.switchGroup(windowId, this.groupId, unsavedGroupName)
 			location.reload()
 		})
 
