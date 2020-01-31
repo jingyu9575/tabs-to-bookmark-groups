@@ -15,8 +15,7 @@ export async function getWindowTabsToSave(windowId: number,
 		if (['about:blank', 'about:newtab', 'about:home'].includes(url))
 			return [] // do not save a single blank tab
 		if (url.startsWith('moz-extension:') &&
-			url === (await browser.browserSettings
-				.newTabPageOverride.get({})).value)
+			url === (await browser.browserSettings.newTabPageOverride.get({})).value)
 			return []
 	}
 	return tabs
