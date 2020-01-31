@@ -1,17 +1,43 @@
 import { abortError, readOnlyError } from "./error.js";
 
-export class SimpleStorage {
+export function idbRequest<T>(r: IDBRequest<T>) {
 	// Bug 1193394 fixed in Firefox 60 (Promise invalidates IDBRequest)
+	return new Promise<T>((resolve, reject) => {
+		r.addEventListener('success', () => resolve(r.result))
+		r.addEventListener('error', () => reject(r.error))
+		r.addEventListener('abort', () => reject(abortError()))
+	})
+}
 
-	private database!: IDBDatabase
+export function idbTransaction(r: IDBTransaction) {
+	return new Promise<void>((resolve, reject) => {
+		r.addEventListener('complete', () => resolve())
+		r.addEventListener('error', () => reject(r.error))
+		r.addEventListener('abort', () => reject(abortError()))
+	})
+}
 
-	static request<T>(r: IDBRequest<T>) {
-		return new Promise<T>((resolve, reject) => {
-			r.addEventListener('success', () => resolve(r.result))
-			r.addEventListener('error', () => reject(r.error))
-			r.addEventListener('abort', () => reject(abortError()))
+export async function* idbCursorRequest<T extends IDBCursor>(
+	r: IDBRequest<T | null>
+) {
+	let resolve: () => void
+	let reject: (reason?: any) => void
+	r.addEventListener('error', () => reject(r.error))
+	r.addEventListener('abort', () => reject(abortError()))
+	r.addEventListener('success', () => resolve())
+	for (; ;) {
+		await new Promise<void>((newResolve, newReject) => {
+			resolve = newResolve; reject = newReject
 		})
+		const cursor = r.result
+		if (!cursor) break
+		yield cursor
+		cursor.continue()
 	}
+}
+
+export class SimpleStorage {
+	private database!: IDBDatabase
 
 	private constructor(private readonly objectStoreName: string) { }
 
@@ -29,7 +55,7 @@ export class SimpleStorage {
 				db.createObjectStore(objectStoreName)
 			await migrate()
 		}
-		that.database = await SimpleStorage.request(request) as IDBDatabase
+		that.database = await idbRequest(request) as IDBDatabase
 		that.currentObjectStore = undefined
 		return that
 	}
@@ -57,76 +83,46 @@ export class SimpleStorage {
 	}
 
 	get<T>(key: IDBValidKey) {
-		return SimpleStorage.request<T>(this.objectStore('readonly').get(key))
+		return idbRequest<T>(this.objectStore('readonly').get(key))
 	}
 
 	getAll(range: IDBKeyRange) {
-		return SimpleStorage.request(this.objectStore('readonly').getAll(range))
+		return idbRequest(this.objectStore('readonly').getAll(range))
 	}
 
 	keys() {
-		return SimpleStorage.request(this.objectStore('readonly').getAllKeys())
+		return idbRequest(this.objectStore('readonly').getAllKeys())
+	}
+
+	entries(range: IDBKeyRange, mode: 'readonly' | 'readwrite') {
+		return idbCursorRequest(this.objectStore(mode).openCursor(range))
 	}
 
 	set(key: IDBValidKey, value: unknown) {
-		return SimpleStorage.request(this.objectStore('readwrite').put(value, key))
+		return idbRequest(this.objectStore('readwrite').put(value, key))
 	}
 
 	async insert<T>(key: IDBValidKey, fn: () => T) {
 		const store = this.objectStore('readwrite')
-		const cursor = await SimpleStorage.request(
+		const cursor = await idbRequest(
 			store.openCursor(key)) as IDBCursorWithValue
 		if (cursor) return cursor.value as T
 		const value = fn()
-		await store.add(value, key)
+		await idbRequest(store.add(value, key))
 		return value
 	}
 
 	delete(key: IDBValidKey | IDBKeyRange) {
-		return SimpleStorage.request(this.objectStore('readwrite').delete(key))
+		return idbRequest(this.objectStore('readwrite').delete(key))
 	}
+
+	clear() {
+		return idbRequest(this.objectStore('readwrite').clear())
+	}
+
+	close() { this.database.close() }
 
 	mutableFile(filename: string, type = 'application/octet-stream') {
-		return SimpleStorage.request(this.database.createMutableFile(filename, type))
-	}
-}
-
-export class SimpleMutableFile {
-	static readonly isAvailable = 'IDBMutableFile' in window
-
-	private cachedHandle?: IDBFileHandle
-
-	constructor(readonly mutableFile: IDBMutableFile) { }
-
-	private open() {
-		if (!this.cachedHandle || !this.cachedHandle.active)
-			this.cachedHandle = this.mutableFile!.open('readwrite')
-		return this.cachedHandle
-	}
-
-	write(data: string | ArrayBuffer, location: number) {
-		const handle = this.open()
-		handle.location = location
-		return SimpleStorage.request(handle.write(data))
-	}
-
-	read(size: number, location: number) {
-		const handle = this.open()
-		handle.location = location
-		return SimpleStorage.request(handle.readAsArrayBuffer(size))
-	}
-
-	truncate(start?: number) {
-		const handle = this.open()
-		return SimpleStorage.request(handle.truncate(start))
-	}
-
-	flush() {
-		const handle = this.open()
-		return SimpleStorage.request(handle.flush())
-	}
-
-	getFile() {
-		return SimpleStorage.request(this.mutableFile.getFile())
+		return idbRequest(this.database.createMutableFile(filename, type))
 	}
 }
