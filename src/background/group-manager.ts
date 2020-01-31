@@ -223,15 +223,22 @@ export class GroupManager {
 					let activeTab: browser.tabs.Tab | undefined
 					for (const bookmark of bookmarks) {
 						const v = GroupManager.converter.toTab(bookmark)
-						v.discarded = S.discardInactiveTabs && !v.pinned && !!v.url &&
+						v.discarded = S.discardInactiveTabs && !!v.url &&
 							!v.url.trimStart().toLowerCase().startsWith('about:')
 						if (!v.discarded) delete v.title
+
+						// workaround "Pinned tabs cannot be created and discarded"
+						const discardedAndPinned = v.discarded && v.pinned
+						if (discardedAndPinned) v.pinned = false
+
 						try {
 							const tab = await browser.tabs.create({
 								windowId, index: Number.MAX_SAFE_INTEGER,
 								...v, active: false,
 							})
 							if (!activeTab || v.active) activeTab = tab
+							if (discardedAndPinned)
+								await browser.tabs.update(tab!.id!, { pinned: true })
 						} catch (error) { console.error(error) }
 					}
 					if (activeTab) browser.tabs.update(activeTab.id!, { active: true })
