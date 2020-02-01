@@ -257,6 +257,15 @@ export class GroupManager {
 		})
 	}
 
+	deleteGroup(groupId: string) {
+		return this.criticalSection.sync(async () => {
+			for (const [entryKey, entryGroupId] of this.windowGroupMap)
+				if (entryGroupId === groupId)
+					this.windowGroupMap.delete(entryKey)
+			await browser.bookmarks.removeTree(groupId)
+		})
+	}
+
 	private async isValidGroupId(id?: string) {
 		if (id === undefined) return false
 		try {

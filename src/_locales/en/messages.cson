@@ -30,3 +30,7 @@ enableBrowserRestoreSessionDesc:
 	message: 'Please enable "Restore previous session" in Firefox options.'
 license3rdParty:
 	message: 'Third-Party Copyright Notices'
+deleteGroup:
+	message: 'Delete group'
+confirmDeleteGroup:
+	message: 'Delete this group?'

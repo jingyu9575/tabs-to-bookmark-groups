@@ -1,5 +1,6 @@
 import { remoteProxy } from '../util/webext/remote.js';
 import { remoteSettings } from './settings.js';
+import { ExtensionPageMenus } from '../util/webext/menu.js';
 
 export const backgroundRemote =
 	remoteProxy<import('../background/background').BackgroundRemote>('BackgroundRemote')
@@ -20,3 +21,6 @@ export async function getWindowTabsToSave(windowId: number,
 	}
 	return tabs
 }
+
+export const panelGroupMenus = new ExtensionPageMenus('XGroupElement',
+	['deleteGroup'])

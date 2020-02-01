@@ -1,7 +1,8 @@
 import { applyI18n, applyI18nAttr, M } from "../util/webext/i18n.js";
 import { importTemplate, defineStringAttribute } from "../util/dom.js";
-import { backgroundRemote, getWindowTabsToSave } from "../common/common.js";
+import { backgroundRemote, getWindowTabsToSave, panelGroupMenus } from "../common/common.js";
 import { GroupState } from "../common/types.js";
+import { ExtensionPageMenus } from "../util/webext/menu.js";
 
 applyI18n()
 applyI18nAttr('title')
@@ -40,7 +41,8 @@ class XGroupElement extends HTMLElement {
 				unsavedGroupName = prompt(M.saveCurrentWindowAs, M.unnamed)
 				if (unsavedGroupName == null) return
 			}
-			backgroundRemote.switchGroup(windowId, this.groupId, unsavedGroupName)
+			await backgroundRemote.switchGroup(
+				windowId, this.groupId, unsavedGroupName)
 			location.reload()
 		})
 
@@ -57,6 +59,17 @@ class XGroupElement extends HTMLElement {
 		if (name === 'name') {
 			this.nameNode.textContent = newValue || ''
 		}
+	}
+
+	menuItemStatus() {
+		return { deleteGroup: { enabled: this.groupId !== undefined } }
+	}
+
+	async deleteGroup() {
+		if (this.groupId === undefined) return
+		if (!confirm(M.confirmDeleteGroup)) return
+		await backgroundRemote.deleteGroup(this.groupId)
+		location.reload()
 	}
 }
 defineStringAttribute(XGroupElement, 'state')
@@ -81,3 +94,7 @@ browser.windows.getCurrent().then(async (currentWindow) => {
 		location.reload()
 	})
 })
+
+panelGroupMenus.listen('.group', XGroupElement.prototype,
+	XGroupElement.prototype.menuItemStatus)
+ExtensionPageMenus.preventDefault()

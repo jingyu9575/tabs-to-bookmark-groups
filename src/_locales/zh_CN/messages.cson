@@ -30,3 +30,7 @@ enableBrowserRestoreSessionDesc:
 	message: '请在火狐选项中启用“恢复先前的浏览状态”。'
 license3rdParty:
 	message: '第三方版权声明'
+deleteGroup:
+	message: '删除群组'
+confirmDeleteGroup:
+	message: '删除这个群组？'
