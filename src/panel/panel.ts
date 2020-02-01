@@ -1,6 +1,8 @@
 import { applyI18n, applyI18nAttr, M } from "../util/webext/i18n.js";
 import { importTemplate, defineStringAttribute } from "../util/dom.js";
-import { backgroundRemote, getWindowTabsToSave, panelGroupMenus } from "../common/common.js";
+import {
+	groupManagerRemote, getWindowTabsToSave, panelGroupMenus
+} from "../common/common.js";
 import { GroupState } from "../common/types.js";
 import { ExtensionPageMenus } from "../util/webext/menu.js";
 
@@ -41,7 +43,7 @@ class XGroupElement extends HTMLElement {
 				unsavedGroupName = prompt(M.saveCurrentWindowAs, M.unnamed)
 				if (unsavedGroupName == null) return
 			}
-			await backgroundRemote.switchGroup(
+			await groupManagerRemote.switchGroup(
 				windowId, this.groupId, unsavedGroupName)
 			location.reload()
 		})
@@ -68,7 +70,7 @@ class XGroupElement extends HTMLElement {
 	async deleteGroup() {
 		if (this.groupId === undefined) return
 		if (!confirm(M.confirmDeleteGroup)) return
-		await backgroundRemote.deleteGroup(this.groupId)
+		await groupManagerRemote.deleteGroup(this.groupId)
 		location.reload()
 	}
 }
@@ -79,7 +81,7 @@ customElements.define('x-group', XGroupElement)
 browser.windows.getCurrent().then(async (currentWindow) => {
 	windowId = currentWindow.id!
 
-	const groups = await backgroundRemote.listGroups(windowId)
+	const groups = await groupManagerRemote.listGroups(windowId)
 	for (const group of groups) {
 		const node = XGroupElement.create()
 		node.groupId = group.id
@@ -90,7 +92,7 @@ browser.windows.getCurrent().then(async (currentWindow) => {
 	document.getElementById('create')!.addEventListener('click', async () => {
 		const name = prompt(M.groupName, M.unnamed)
 		if (name == null) return
-		await backgroundRemote.createGroup(name)
+		await groupManagerRemote.createGroup(name)
 		location.reload()
 	})
 })

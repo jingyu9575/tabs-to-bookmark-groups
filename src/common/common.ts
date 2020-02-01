@@ -5,6 +5,9 @@ import { ExtensionPageMenus } from '../util/webext/menu.js';
 export const backgroundRemote =
 	remoteProxy<import('../background/background').BackgroundRemote>('BackgroundRemote')
 
+export const groupManagerRemote =
+	remoteProxy<import('../background/group-manager').GroupManager>('GroupManager')
+
 export async function getWindowTabsToSave(windowId: number,
 	discardSingleBlank: boolean) {
 	let tabs = (await browser.windows.get(windowId,
