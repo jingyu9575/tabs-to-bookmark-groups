@@ -50,8 +50,11 @@ class XGroupElement extends HTMLElement {
 				unsavedGroupName = prompt(M.saveCurrentWindowAs, M.unnamed)
 				if (unsavedGroupName == null) return
 			}
-			await groupManagerRemote.switchGroup(
+			void groupManagerRemote.switchGroup(
 				windowId, this.groupId, unsavedGroupName)
+			if (this.groupId !== undefined &&
+				Number(new URL(location.href).searchParams.get('browserAction')))
+				window.close()
 		})
 
 		return this

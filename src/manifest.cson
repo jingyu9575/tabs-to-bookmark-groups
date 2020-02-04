@@ -25,7 +25,7 @@ browser_action:
 		size: 48
 	}]
 	default_title: '__MSG_extensionName__'
-	default_popup: 'panel/panel.html'
+	default_popup: 'panel/panel.html?browserAction=1'
 	browser_style: false
 sidebar_action:
     default_icon: 'icons/icon.svg'
