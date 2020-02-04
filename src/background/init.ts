@@ -8,5 +8,7 @@ browser.runtime.onInstalled.addListener(({ reason, temporary }) => {
 		browser.tabs.create({ url: '/pages/first-install.html' });
 })
 
-const panelURL = browser.runtime.getManifest().browser_action!.default_popup!
-panelGroupMenus.register({ title: M, documentUrlPatterns: [panelURL] })
+const panelURL = new URL(browser.runtime.getManifest()
+	.browser_action!.default_popup!)
+panelURL.search = ''
+panelGroupMenus.register({ title: M, documentUrlPatterns: [panelURL + '*'] })
