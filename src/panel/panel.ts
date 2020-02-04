@@ -77,7 +77,6 @@ class XGroupElement extends HTMLElement {
 		if (this.groupId === undefined) return
 		if (!confirm(M.confirmDeleteGroup)) return
 		await groupManagerRemote.deleteGroup(this.groupId)
-		location.reload()
 	}
 }
 defineStringAttribute(XGroupElement, 'state')
@@ -99,7 +98,6 @@ browser.windows.getCurrent().then(async (currentWindow) => {
 		const name = prompt(M.groupName, M.unnamed)
 		if (name == null) return
 		await groupManagerRemote.createGroup(name)
-		location.reload()
 	})
 })
 
