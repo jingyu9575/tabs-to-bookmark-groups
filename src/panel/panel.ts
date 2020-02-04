@@ -5,9 +5,16 @@ import {
 } from "../common/common.js";
 import { GroupState } from "../common/types.js";
 import { ExtensionPageMenus } from "../util/webext/menu.js";
+import { registerRemoteHandler } from "../util/webext/remote.js";
+import { setImmediate } from "../util/set-immediate.js";
 
 applyI18n()
 applyI18nAttr('title')
+
+export class PanelRemote {
+	async reload() { setImmediate(() => location.reload()) }
+}
+registerRemoteHandler(new PanelRemote)
 
 let windowId: number | undefined
 
@@ -45,7 +52,6 @@ class XGroupElement extends HTMLElement {
 			}
 			await groupManagerRemote.switchGroup(
 				windowId, this.groupId, unsavedGroupName)
-			location.reload()
 		})
 
 		return this

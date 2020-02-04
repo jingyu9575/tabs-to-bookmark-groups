@@ -4,10 +4,13 @@ import { GroupState } from "../common/types.js";
 import { getWindowTabsToSave } from "../common/common.js";
 import { S } from "./settings.js";
 import { PartialTab, WindowManager } from "./window-manager.js";
+import { remoteProxy } from "../util/webext/remote.js";
 
 const KEY_GROUP = 'group'
 
 type TabsCreateDetails = Parameters<typeof browser.tabs.create>[0]
+
+const panelRemote = remoteProxy<import('../panel/panel').PanelRemote>('PanelRemote')
 
 export class GroupManager {
 	private static markerURL = browser.runtime.getURL('/pages/marker.html')
@@ -74,7 +77,11 @@ export class GroupManager {
 	private readonly windowGroupMap = new Map<number, string | undefined>()
 	private readonly windowManager = new WindowManager()
 
-	protected readonly initialization = this.criticalSection.sync(async () => {
+	private syncWrite<T>(fn: () => Promise<T>) {
+		return this.criticalSection.sync(fn).finally(() => panelRemote.reload())
+	}
+
+	protected readonly initialization = this.syncWrite(async () => {
 		const windows = await browser.windows.getAll()
 		const onCreated = async ({ id }: browser.windows.Window) => {
 			browser.sessions.getWindowValue(id!, KEY_GROUP).then(
@@ -85,7 +92,7 @@ export class GroupManager {
 			const groupId = this.windowGroupMap.get(windowId)
 			if (groupId === undefined) return
 			this.windowGroupMap.delete(windowId)
-			this.criticalSection.sync(async () => {
+			this.syncWrite(async () => {
 				if (!await this.isValidGroupId(groupId)) return
 				await this.saveGroupImpl(groupId, tabs)
 			})
@@ -151,7 +158,7 @@ export class GroupManager {
 	}
 
 	createGroup(name: string) {
-		return this.criticalSection.sync(() => this.createGroupImpl(name))
+		return this.syncWrite(() => this.createGroupImpl(name))
 	}
 
 	private async saveGroupImpl(groupId: string, tabs: PartialTab[]) {
@@ -178,7 +185,7 @@ export class GroupManager {
 	}
 
 	switchGroup(windowId: number, groupId?: string, unsavedGroupName?: string) {
-		return this.criticalSection.sync(async () => {
+		return this.syncWrite(async () => {
 			let oldGroupId = this.windowGroupMap.get(windowId)
 			if (!await this.isValidGroupId(oldGroupId)) oldGroupId = undefined
 
@@ -258,7 +265,7 @@ export class GroupManager {
 	}
 
 	deleteGroup(groupId: string) {
-		return this.criticalSection.sync(async () => {
+		return this.syncWrite(async () => {
 			for (const [entryKey, entryGroupId] of this.windowGroupMap)
 				if (entryGroupId === groupId)
 					this.windowGroupMap.delete(entryKey)

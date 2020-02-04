@@ -27,6 +27,12 @@ browser_action:
 	default_title: '__MSG_extensionName__'
 	default_popup: 'panel/panel.html'
 	browser_style: false
+sidebar_action:
+    default_icon: 'icons/icon.svg'
+    default_title: '__MSG_extensionName__'
+    default_panel: 'panel/panel.html'
+    open_at_install: false
+    browser_style: false
 background:
 	page: 'background/background.html'
 options_ui:
