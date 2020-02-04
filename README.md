@@ -1,6 +1,6 @@
-# webext-template
+# Tabs to Bookmark Groups
 
-My personal WebExtension template.
+(Work in progress) Firefox extension to save the tabs to a bookmark group and switch between different groups.
 
 ## Build
 
