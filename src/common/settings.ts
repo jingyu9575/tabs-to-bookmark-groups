@@ -5,6 +5,8 @@ export class Settings {
 
 	excludePinnedTabs = false
 	discardInactiveTabs = true
+
+	theme = 'auto'
 }
 
 export const remoteSettings = new RemoteSettings(new Settings)

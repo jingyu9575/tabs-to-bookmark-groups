@@ -16,6 +16,13 @@ append body
 					input(type='checkbox' data-key='discardInactiveTabs')
 					span(data-i18n='discardInactiveTabs')
 				hr
+				label.input-label
+					span(data-i18n='theme')
+					select(data-key='theme')
+						option(value='auto' data-i18n='automatic')
+						option(value='' data-i18n='light')
+						option(value='dark' data-i18n='dark')
+				hr
 				a(target="_blank" href="/lib/LICENSE-3RD-PARTY.txt"
 						data-i18n="license3rdParty")
 	script(type='module' src='options.js')

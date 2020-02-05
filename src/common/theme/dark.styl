@@ -1,0 +1,49 @@
+/* Adapted from Onurtag's theme for another extension */
+/* https://gist.github.com/Onurtag/1ea462f330a8cc26d4b72d3023966f65 */
+body
+	background-color: #4A4A4F
+	color: #f3f3f3
+
+input, select
+	background-color: #f7f7f7
+
+input[type='checkbox']
+	filter: brightness(95%)
+
+a
+	filter: invert(90%) hue-rotate(170deg)
+
+button
+	outline-color: #c0c0d5 !important
+
+x-tabs-nav, x-page
+	background-color: #4A4A4F
+	border-color: #4A4A4F
+
+x-tab[active]
+	color: #f3f3f3
+	outline-color: #c0c0d5 !important
+	border-top-color: #0A84FF
+	background-color: #6A6A70
+
+x-tab:hover
+	background-color: #71717b
+
+#toolbar > button
+	background-color: #3b3b3f
+	margin-right: 1px
+
+#toolbar > button:not([disabled]):hover
+	background-color: rgba(220, 220, 220, 0.2)
+
+#toolbar > button > svg > use, #toolbar > button > img
+	filter: invert(100%) contrast(80%)
+
+#toolbar
+	background-color: #3b3b3f
+
+x-group 
+	.group-button:not([disabled]):hover
+		background-color: rgba(220, 220, 220, 0.2)
+	&[state='open'] .group-button
+		background-color: rgba(220, 220, 220, 0.3)

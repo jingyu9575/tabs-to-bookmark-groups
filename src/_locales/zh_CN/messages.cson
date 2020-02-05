@@ -34,3 +34,11 @@ deleteGroup:
 	message: '删除群组'
 confirmDeleteGroup:
 	message: '删除这个群组？'
+theme:
+	message: '主题：'
+automatic:
+	message: '自动'
+light:
+	message: '亮'
+dark:
+	message: '暗'

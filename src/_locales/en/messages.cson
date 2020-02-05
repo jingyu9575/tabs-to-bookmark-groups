@@ -34,3 +34,11 @@ deleteGroup:
 	message: 'Delete group'
 confirmDeleteGroup:
 	message: 'Delete this group?'
+theme:
+	message: 'Theme:'
+automatic:
+	message: 'Automatic'
+light:
+	message: 'Light'
+dark:
+	message: 'Dark'
