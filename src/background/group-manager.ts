@@ -107,6 +107,12 @@ export class GroupManager {
 		})
 
 		for (const w of windows) void onCreated(w)
+
+		this.schedulePruneFaviconStorage()
+		browser.idle.onStateChanged.addListener(state => {
+			if (state === 'idle' && this.pruneFaviconStorageScheduled)
+				this.pruneFaviconStorage()
+		})
 	})
 
 	private async rootId() {
@@ -207,6 +213,7 @@ export class GroupManager {
 		for (const { id } of bookmarks)
 			await browser.bookmarks.remove(id)
 		await browser.bookmarks.remove(transaction.id)
+		this.schedulePruneFaviconStorage()
 	}
 
 	switchGroup(windowId: number, groupId?: string, unsavedGroupName?: string) {
@@ -295,6 +302,7 @@ export class GroupManager {
 				if (entryGroupId === groupId)
 					this.windowGroupMap.delete(entryKey)
 			await browser.bookmarks.removeTree(groupId)
+			this.schedulePruneFaviconStorage()
 		})
 	}
 
@@ -305,5 +313,37 @@ export class GroupManager {
 			return bookmark && bookmark.type === 'folder'
 				&& bookmark.parentId === await this.rootId()
 		} catch { return false }
+	}
+
+	private pruneFaviconStorageScheduled = false
+
+	private pruneFaviconStorage() {
+		this.pruneFaviconStorageScheduled = false
+		void this.faviconStorage.then(async storage => {
+			// not in critical section; assume favicon is saved after bookmarks
+			const [root] = await browser.bookmarks.getSubTree(await this.rootId())
+			const idList: string[] = []
+			function addSubTree(node: typeof root) {
+				idList.push(node.id)
+				if (node.children) node.children.forEach(addSubTree)
+			}
+			addSubTree(root)
+			const idSet = new Set<string>(idList)
+
+			const existingKeys = await storage.keys()
+			void storage.transaction('readwrite', async () => {
+				for (const id of existingKeys) {
+					if (idSet.has(id as string)) continue
+					void storage.delete(id)
+				}
+			})
+		})
+	}
+
+	private async schedulePruneFaviconStorage() {
+		if ((await browser.idle.queryState(30)) === 'idle')
+			this.pruneFaviconStorage()
+		else
+			this.pruneFaviconStorageScheduled = true
 	}
 }
