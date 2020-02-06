@@ -1,8 +1,8 @@
-import './init.js'
 import { registerRemoteHandler } from "../util/webext/remote.js";
-import { GroupManager } from "./group-manager.js";
+import { groupManager } from "./group-manager.js";
+import './init.js'
 
-registerRemoteHandler(new GroupManager)
+registerRemoteHandler(groupManager)
 
 export class BackgroundRemote { }
 registerRemoteHandler(new BackgroundRemote)

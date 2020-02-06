@@ -141,9 +141,10 @@ export class GroupManager {
 		return this.cachedRootId
 	}
 
-	listGroups(windowId: number) {
+	listGroups(windowId?: number) {
 		return this.criticalSection.sync(async () => {
-			const currentGroup = this.windowGroupMap.get(windowId)
+			const currentGroup = windowId !== undefined ?
+				this.windowGroupMap.get(windowId) : undefined
 			const lockedGroups = new Set(this.windowGroupMap.values())
 			let hasOpenGroup = false
 			const [root] = await browser.bookmarks.getSubTree(await this.rootId())
@@ -175,14 +176,20 @@ export class GroupManager {
 		return this.syncWrite(() => this.createGroupImpl(name))
 	}
 
-	private async saveGroupImpl(groupId: string, tabs: PartialTab[]) {
-		const bookmarks = await browser.bookmarks.getChildren(groupId)
-		// TODO recovery
-		const transaction = (await browser.bookmarks.create({
-			parentId: groupId,
-			title: 'Transaction', url: GroupManager.transactionURL,
-			index: Number.MAX_SAFE_INTEGER,
-		}))!
+	private async saveGroupImpl(groupId: string, tabs: PartialTab[],
+		append?: 'append') {
+		let existingBookmarks: browser.bookmarks.BookmarkTreeNode[]
+		let transactionBookmarkId: string
+		if (!append) {
+			existingBookmarks = await browser.bookmarks.getChildren(groupId)
+			// TODO recovery
+			transactionBookmarkId = (await browser.bookmarks.create({
+				parentId: groupId,
+				title: 'Transaction', url: GroupManager.transactionURL,
+				index: Number.MAX_SAFE_INTEGER,
+			}))!.id
+		}
+
 		const faviconURLUpdates: [string, string][] = []
 		for (const tab of tabs!) {
 			const promise = browser.bookmarks.create({
@@ -206,14 +213,16 @@ export class GroupManager {
 			})
 		})
 
-		await browser.bookmarks.update(transaction.id, {
-			title: 'Transaction (committed)',
-			url: GroupManager.commitedTransactionURL,
-		})
-		for (const { id } of bookmarks)
-			await browser.bookmarks.remove(id)
-		await browser.bookmarks.remove(transaction.id)
-		this.schedulePruneFaviconStorage()
+		if (!append) {
+			await browser.bookmarks.update(transactionBookmarkId!, {
+				title: 'Transaction (committed)',
+				url: GroupManager.commitedTransactionURL,
+			})
+			for (const { id } of existingBookmarks!)
+				await browser.bookmarks.remove(id)
+			await browser.bookmarks.remove(transactionBookmarkId!)
+			this.schedulePruneFaviconStorage()
+		}
 	}
 
 	switchGroup(windowId: number, groupId?: string, unsavedGroupName?: string) {
@@ -346,4 +355,13 @@ export class GroupManager {
 		else
 			this.pruneFaviconStorageScheduled = true
 	}
+
+	appendGroup(groupId: string, tabs: PartialTab[]) {
+		return this.syncWrite(async () => {
+			if (!await this.isValidGroupId(groupId))
+				throw new Error("Invalid group id")
+			this.saveGroupImpl(groupId, tabs, 'append')
+		})
+	}
 }
+export const groupManager = new GroupManager()

@@ -46,3 +46,5 @@ notLoadFavicon:
 	message: 'Do not load icons'
 loadFavicon:
 	message: 'Load icons'
+moveToGroup:
+	message: 'Move to bookmark group'

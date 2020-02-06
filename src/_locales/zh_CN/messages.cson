@@ -46,3 +46,5 @@ notLoadFavicon:
 	message: '不载入图标'
 loadFavicon:
 	message: '载入图标'
+moveToGroup:
+	message: '移动到书签群组'
