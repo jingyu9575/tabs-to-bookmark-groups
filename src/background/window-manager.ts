@@ -2,7 +2,7 @@ import { mapInsert } from "../util/util.js"
 import { SimpleEventListener } from "../util/event.js";
 
 export interface PartialTab extends Pick<browser.tabs.Tab,
-	'id' | 'title' | 'url' | 'active' | 'pinned'> { }
+	'id' | 'title' | 'url' | 'active' | 'pinned' | 'favIconUrl'> { }
 
 function arrayRemoveOne<T>(arr: T[], item: T) {
 	const i = arr.indexOf(item)
@@ -23,7 +23,7 @@ export class WindowManager {
 		browser.tabs.query({}).then(tabs => {
 			for (const tab of tabs) { this.createTab(tab) }
 		})
-		
+
 		browser.tabs.onActivated.addListener(({ tabId, previousTabId }) => {
 			const tab = this.tabs.get(tabId)
 			if (tab) tab.active = true
@@ -62,9 +62,12 @@ export class WindowManager {
 			this.onWindowRemoved.dispatch(windowId, tabs)
 		})
 
-		browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
+		browser.tabs.onUpdated.addListener((tabId, changeInfo, newTab) => {
 			const tab = this.tabs.get(tabId)
 			if (!tab) return
+
+			// Bug 1450384: favIconUrl may not be reported in changeInfo
+			tab.favIconUrl = newTab.favIconUrl
 			for (const key of ['title', 'url', 'pinned'] as const)
 				if (changeInfo[key] !== undefined)
 					(tab[key] as any) = changeInfo[key]

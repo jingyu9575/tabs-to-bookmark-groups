@@ -17,6 +17,7 @@ permissions: [
 	'menus'
 	'menus.overrideContext'
 	'unlimitedStorage'
+	'contextualIdentities'
 ]
 browser_action:
 	default_icon: 'icons/icon-color.svg#dark'

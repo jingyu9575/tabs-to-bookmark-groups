@@ -5,6 +5,7 @@ import { getWindowTabsToSave } from "../common/common.js";
 import { S } from "./settings.js";
 import { PartialTab, WindowManager } from "./window-manager.js";
 import { remoteProxy } from "../util/webext/remote.js";
+import { SimpleStorage } from "../util/storage.js";
 
 const KEY_GROUP = 'group'
 
@@ -20,7 +21,7 @@ export class GroupManager {
 		'/pages/transaction.html?committed=1')
 
 	private static converter = new class {
-		private readonly restrictedURL = browser.runtime.getURL('pages/url.html?')
+		private readonly extURL = browser.runtime.getURL('pages/url.html?')
 
 		private readonly restrictedProtocols = new Set([
 			'chrome:', 'javascript:', 'data:', 'file:', 'about:', 'blob:'
@@ -33,7 +34,7 @@ export class GroupManager {
 
 		toBookmark(tab: PartialTab): browser.bookmarks.CreateDetails {
 			let url = tab.url!
-			if (url.startsWith(this.restrictedURL)) {
+			if (url.startsWith(this.extURL)) {
 				try {
 					const { searchParams } = new URL(url)
 					url = new URL(searchParams.get('url')!).href
@@ -55,19 +56,25 @@ export class GroupManager {
 			return title
 		}
 
-		toTab(bookmark: browser.bookmarks.BookmarkTreeNode): TabsCreateDetails {
+		toTab(bookmark: browser.bookmarks.BookmarkTreeNode,
+			discardFavicon: boolean): TabsCreateDetails {
+			const details: TabsCreateDetails = {}
+			const title = this.trimPrefix(bookmark.title, details)
+
 			let url: string | undefined = bookmark.url!
 			const lc = url.toLowerCase()
 			if (lc === 'about:newtab' || lc === 'about:home')
 				url = undefined
 			else try {
-				if (this.restrictedProtocols.has(new URL(lc).protocol)
-					&& lc !== 'about:blank')
-					url = this.restrictedURL + new URLSearchParams({ url })
+				if ((discardFavicon ||
+					this.restrictedProtocols.has(new URL(lc).protocol)
+				) && lc !== 'about:blank') {
+					const p = new URLSearchParams({ id: bookmark.id, url, title })
+					if (discardFavicon) p.set('discardFavicon', '1')
+					url = this.extURL + p
+				}
 			} catch { }
 
-			const details: TabsCreateDetails = {}
-			const title = this.trimPrefix(bookmark.title, details)
 			return { url, title, ...details }
 		}
 	}
@@ -76,6 +83,7 @@ export class GroupManager {
 	private cachedRootId?: string
 	private readonly windowGroupMap = new Map<number, string | undefined>()
 	private readonly windowManager = new WindowManager()
+	private readonly faviconStorage = SimpleStorage.create('favicon')
 
 	private syncWrite<T>(fn: () => Promise<T>) {
 		return this.criticalSection.sync(fn).finally(() => panelRemote.reload())
@@ -169,12 +177,29 @@ export class GroupManager {
 			title: 'Transaction', url: GroupManager.transactionURL,
 			index: Number.MAX_SAFE_INTEGER,
 		}))!
-		for (const tab of tabs!)
-			await browser.bookmarks.create({
+		const faviconURLUpdates: [string, string][] = []
+		for (const tab of tabs!) {
+			const promise = browser.bookmarks.create({
 				parentId: groupId,
 				index: Number.MAX_SAFE_INTEGER,
 				...GroupManager.converter.toBookmark(tab)
+			}) // await later
+			let { favIconUrl } = tab
+			// Bug 1497587: favIconUrl is data URL (at least Firefox 64+)
+			if (!favIconUrl || favIconUrl.slice(0, 5).toLowerCase() !== 'data:')
+				favIconUrl = ''
+			const { id } = (await promise)!
+			faviconURLUpdates.push([id, favIconUrl])
+		}
+
+		// secondary storage, no await
+		void this.faviconStorage.then(storage => {
+			storage.transaction('readwrite', async () => {
+				for (const [id, favIconUrl] of faviconURLUpdates)
+					void storage.set(id, favIconUrl)
 			})
+		})
+
 		await browser.bookmarks.update(transaction.id, {
 			title: 'Transaction (committed)',
 			url: GroupManager.commitedTransactionURL,
@@ -232,8 +257,10 @@ export class GroupManager {
 				if (bookmarks.length) {
 					let activeTab: browser.tabs.Tab | undefined
 					for (const bookmark of bookmarks) {
-						const v = GroupManager.converter.toTab(bookmark)
-						v.discarded = S.discardInactiveTabs && !!v.url &&
+						const v = GroupManager.converter.toTab(bookmark,
+							S.discardInactiveTabs && !!S.discardInactiveTabsFavicon)
+						v.discarded = S.discardInactiveTabs &&
+							!S.discardInactiveTabsFavicon && !!v.url &&
 							!v.url.trimStart().toLowerCase().startsWith('about:')
 						if (!v.discarded) delete v.title
 
@@ -247,8 +274,6 @@ export class GroupManager {
 								...v, active: false,
 							})
 							if (!activeTab || v.active) activeTab = tab
-							if (discardedAndPinned)
-								await browser.tabs.update(tab!.id!, { pinned: true })
 						} catch (error) { console.error(error) }
 					}
 					if (coverTab) {

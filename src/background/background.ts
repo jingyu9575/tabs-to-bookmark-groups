@@ -6,3 +6,5 @@ registerRemoteHandler(new GroupManager)
 
 export class BackgroundRemote { }
 registerRemoteHandler(new BackgroundRemote)
+
+void navigator.storage.persist()

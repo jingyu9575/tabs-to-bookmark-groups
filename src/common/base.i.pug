@@ -1,5 +1,6 @@
 - var repoRoot = ''
 - var subtitle = false
+- var noFavicon = false
 
 doctype html
 html
@@ -7,8 +8,9 @@ html
 		meta(charset='utf-8')
 		meta(name='viewport' content='width=device-width, initial-scale=1.0')
 		title
-		link(rel='icon' href='/icons/icon.svg')
 		block head
+		if !noFavicon
+			link(rel='icon' href='/icons/icon.svg')
 	body(data-subtitle=subtitle)
 		script(type='module' src='/common/base.js')
 		block body

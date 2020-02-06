@@ -5,6 +5,7 @@ export class Settings {
 
 	excludePinnedTabs = false
 	discardInactiveTabs = true
+	discardInactiveTabsFavicon: 'load' | '' = ''
 
 	theme = 'auto'
 }
