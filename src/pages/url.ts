@@ -11,6 +11,14 @@ const urlInput = document.getElementById('url') as HTMLInputElement
 urlInput.value = url
 urlInput.addEventListener('click', () => { urlInput.select() })
 
+const restrictedProtocols = new Set([
+	'chrome:', 'javascript:', 'data:', 'file:', 'about:', 'blob:'
+])
+try {
+	if (!restrictedProtocols.has(new URL(url).protocol.toLowerCase()))
+		document.getElementById('restricted-desc')!.hidden = true
+} catch (error) { console.error(error) }
+
 document.getElementById('copy')!.addEventListener('click', () => {
 	void navigator.clipboard!.writeText(urlInput.value)
 	urlInput.select()
