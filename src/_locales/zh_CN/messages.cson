@@ -25,7 +25,7 @@ general:
 excludePinnedTabs:
 	message: '排除已固定标签页'
 discardInactiveTabs:
-	message: '切换群组后不载入非活动标签页'
+	message: '切换群组后不载入非活动标签页：'
 enableBrowserRestoreSessionDesc:
 	message: '请在火狐选项中启用“恢复先前的浏览状态”。'
 license3rdParty:
@@ -42,3 +42,7 @@ light:
 	message: '亮'
 dark:
 	message: '暗'
+notLoadFavicon:
+	message: '不载入图标'
+loadFavicon:
+	message: '载入图标'

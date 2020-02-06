@@ -12,9 +12,14 @@ append body
 				label.input-label
 					input(type='checkbox' data-key='excludePinnedTabs')
 					span(data-i18n='excludePinnedTabs')
-				label.input-label
-					input(type='checkbox' data-key='discardInactiveTabs')
-					span(data-i18n='discardInactiveTabs')
+				span.input-label
+					label.contents-label
+						input(type='checkbox' data-key='discardInactiveTabs')
+						span(data-i18n='discardInactiveTabs')
+					span
+					select(data-key='discardInactiveTabsFavicon')
+						option(value='' data-i18n='notLoadFavicon')
+						option(value='load' data-i18n='loadFavicon')
 				hr
 				label.input-label
 					span(data-i18n='theme')

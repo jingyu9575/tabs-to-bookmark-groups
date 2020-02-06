@@ -25,7 +25,7 @@ general:
 excludePinnedTabs:
 	message: 'Exclude pinned tabs'
 discardInactiveTabs:
-	message: 'Unload inactive tabs after switching groups'
+	message: 'Unload inactive tabs after switching groups:'
 enableBrowserRestoreSessionDesc:
 	message: 'Please enable "Restore previous session" in Firefox options.'
 license3rdParty:
@@ -42,3 +42,7 @@ light:
 	message: 'Light'
 dark:
 	message: 'Dark'
+notLoadFavicon:
+	message: 'Do not load icons'
+loadFavicon:
+	message: 'Load icons'
