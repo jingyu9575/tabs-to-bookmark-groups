@@ -8,6 +8,7 @@ export class Settings {
 	discardInactiveTabsFavicon: 'load' | '' = ''
 
 	theme = 'auto'
+	autoSetColor = false
 }
 
 export const remoteSettings = new RemoteSettings(new Settings)

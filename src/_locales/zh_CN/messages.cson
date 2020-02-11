@@ -66,3 +66,5 @@ setColor:
 	message: '绿'
 groupN:
 	message: '群组 $1'
+autoSetColor:
+	message: '自动为新群组指定颜色'

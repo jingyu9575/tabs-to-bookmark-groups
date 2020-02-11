@@ -2,7 +2,7 @@ import { M } from "../util/webext/i18n.js";
 import { CriticalSection } from "../util/promise.js";
 import { GroupState } from "../common/types.js";
 import { getWindowTabsToSave } from "../common/common.js";
-import { S } from "./settings.js";
+import { S, localSettings } from "./settings.js";
 import { PartialTab, WindowManager } from "./window-manager.js";
 import { remoteProxy } from "../util/webext/remote.js";
 import { SimpleStorage } from "../util/storage.js";
@@ -100,6 +100,7 @@ export class GroupManager {
 	}
 
 	protected readonly initialization = this.syncWrite(async () => {
+		await localSettings.initialization
 		const windows = await browser.windows.getAll()
 		const onCreated = async ({ id }: browser.windows.Window) => {
 			browser.sessions.getWindowValue(id!, KEY_GROUP).then(
@@ -183,7 +184,9 @@ export class GroupManager {
 	private async createGroupImpl(name: string) {
 		return browser.bookmarks.create({
 			parentId: await this.rootId(),
-			title: name,
+			title: (!S.autoSetColor ? '' : [...GroupManager.colorMap.keys()][
+				Math.floor(Math.random() * GroupManager.colorMap.size)] + ' '
+			) + name,
 			index: Number.MAX_SAFE_INTEGER,
 		})
 	}
