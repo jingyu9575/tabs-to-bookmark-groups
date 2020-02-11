@@ -69,6 +69,18 @@ x-group
 	state-class('&', '.group-icon', 'locked')
 	state-class('&', '.group-icon', 'unsaved')
 
+	group-color(key, value)
+		&[color=\"{key}\"] .group-icon
+			color: value
+
+	group-color('blue', #0078d7)
+	group-color('red', #e81224)
+	group-color('orange', #f7630c)
+	group-color('purple', #886ce4)
+	group-color('brown', #8e562e)
+	group-color('yellow', #fff100)
+	group-color('green', #16c60c)
+
 	.group-name
 		overflow: hidden
 		white-space: nowrap

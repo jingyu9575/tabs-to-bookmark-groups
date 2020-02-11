@@ -20,6 +20,16 @@ export class GroupManager {
 	private static commitedTransactionURL = browser.runtime.getURL(
 		'/pages/transaction.html?committed=1')
 
+	static readonly colorMap = new Map([
+		["\u{1F535}", "blue"],
+		["\u{1F534}", "red"],
+		["\u{1F7E0}", "orange"],
+		["\u{1F7E3}", "purple"],
+		["\u{1F7E4}", "brown"],
+		["\u{1F7E1}", "yellow"],
+		["\u{1F7E2}", "green"],
+	])
+
 	private static converter = new class {
 		private readonly extURL = browser.runtime.getURL('pages/url.html?')
 
@@ -141,6 +151,12 @@ export class GroupManager {
 		return this.cachedRootId
 	}
 
+	private getGroupNameColor(bookmark: browser.bookmarks.BookmarkTreeNode) {
+		const color = GroupManager.colorMap.get(bookmark.title.slice(0, 2))
+		if (!color) return { name: bookmark.title }
+		return { name: bookmark.title.slice(2).trimStart(), color: color }
+	}
+
 	listGroups(windowId?: number) {
 		return this.criticalSection.sync(async () => {
 			const currentGroup = windowId !== undefined ?
@@ -150,7 +166,7 @@ export class GroupManager {
 			const [root] = await browser.bookmarks.getSubTree(await this.rootId())
 			const groups = root.children!.filter(v => v.type === 'folder').map(v => ({
 				id: v.id as string | undefined,
-				name: v.title,
+				...this.getGroupNameColor(v),
 				size: v.children!.length,
 				state: v.id === currentGroup ? (hasOpenGroup = true, 'open') :
 					lockedGroups.has(v.id) ? 'locked' : 'closed' as GroupState

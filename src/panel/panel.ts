@@ -23,6 +23,7 @@ class XGroupElement extends HTMLElement {
 
 	state!: GroupState
 	name!: string
+	color?: string
 	groupId?: string
 
 	private buttonNode!: HTMLButtonElement
@@ -64,7 +65,8 @@ class XGroupElement extends HTMLElement {
 		return this.parent.appendChild(new this().init())
 	}
 
-	static readonly observedAttributes = ['state', 'name'] as const
+	static readonly groupProps = ['state', 'name', 'color'] as const
+	static readonly observedAttributes = XGroupElement.groupProps
 	attributeChangedCallback(name: typeof XGroupElement.observedAttributes[number],
 		_oldValue: string | null, newValue: string | null) {
 		if (name === 'name') {
@@ -82,8 +84,8 @@ class XGroupElement extends HTMLElement {
 		await groupManagerRemote.deleteGroup(this.groupId)
 	}
 }
-defineStringAttribute(XGroupElement, 'state')
-defineStringAttribute(XGroupElement, 'name')
+for (const key of XGroupElement.groupProps)
+	defineStringAttribute(XGroupElement, key)
 customElements.define('x-group', XGroupElement)
 
 browser.windows.getCurrent().then(async (currentWindow) => {
@@ -93,8 +95,8 @@ browser.windows.getCurrent().then(async (currentWindow) => {
 	for (const group of groups) {
 		const node = XGroupElement.create()
 		node.groupId = group.id
-		node.name = group.name
-		node.state = group.state
+		for (const key of XGroupElement.groupProps)
+			(node[key] as string) = group[key] || ''
 	}
 
 	document.getElementById('create')!.addEventListener('click', async () => {
