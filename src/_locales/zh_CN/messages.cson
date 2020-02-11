@@ -10,8 +10,6 @@ currentWindow:
 	message: '当前窗口'
 groupName:
 	message: '群组名称：'
-unnamed:
-	message: '未命名'
 saveCurrentWindowAs:
 	message: '将当前窗口保存为：'
 groupIsLocked:
@@ -66,3 +64,5 @@ setColor:
 	message: '黄'
 'setColor.green':
 	message: '绿'
+groupN:
+	message: '群组 $1'

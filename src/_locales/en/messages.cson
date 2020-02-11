@@ -10,8 +10,6 @@ currentWindow:
 	message: 'Current window'
 groupName:
 	message: 'Group name:'
-unnamed:
-	message: 'Unnamed'
 saveCurrentWindowAs:
 	message: 'Save current window as:'
 groupIsLocked:
@@ -66,3 +64,5 @@ setColor:
 	message: 'Yellow'
 'setColor.green':
 	message: 'Green'
+groupN:
+	message: 'Group $1'

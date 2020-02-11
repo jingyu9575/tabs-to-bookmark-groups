@@ -20,6 +20,11 @@ let windowId: number | undefined
 
 class XGroupElement extends HTMLElement {
 	static readonly parent = document.getElementById('groups')! as HTMLElement
+	static readonly tagName = 'x-group'
+
+	private static get list() {
+		return [...this.parent.getElementsByTagName(this.tagName)] as XGroupElement[]
+	}
 
 	state!: GroupState
 	name!: string
@@ -44,11 +49,11 @@ class XGroupElement extends HTMLElement {
 				return
 			}
 
-			let unsavedGroupName: string | null = M.unnamed
+			let unsavedGroupName: string | null = XGroupElement.newGroupName()
 			if (this.state === 'unsaved' ||
 				XGroupElement.parent.querySelector('.group[state="unsaved"]') &&
 				(await getWindowTabsToSave(windowId, true)).length) {
-				unsavedGroupName = prompt(M.saveCurrentWindowAs, M.unnamed)
+				unsavedGroupName = prompt(M.saveCurrentWindowAs, unsavedGroupName)
 				if (unsavedGroupName == null) return
 			}
 			void groupManagerRemote.switchGroup(
@@ -81,6 +86,13 @@ class XGroupElement extends HTMLElement {
 		}
 	}
 
+	static newGroupName() {
+		const used = new Set(this.list.map(v => v.name))
+		let result: string
+		for (let i = 1; used.has((result = M('groupN', i))); i++) { }
+		return result
+	}
+
 	async deleteGroup() {
 		if (this.groupId === undefined) return
 		if (!confirm(M.confirmDeleteGroup)) return
@@ -94,7 +106,7 @@ class XGroupElement extends HTMLElement {
 }
 for (const key of XGroupElement.groupProps)
 	defineStringAttribute(XGroupElement, key)
-customElements.define('x-group', XGroupElement)
+customElements.define(XGroupElement.tagName, XGroupElement)
 
 browser.windows.getCurrent().then(async (currentWindow) => {
 	windowId = currentWindow.id!
@@ -108,12 +120,12 @@ browser.windows.getCurrent().then(async (currentWindow) => {
 	}
 
 	document.getElementById('create')!.addEventListener('click', async () => {
-		const name = prompt(M.groupName, M.unnamed)
+		const name = prompt(M.groupName, XGroupElement.newGroupName())
 		if (name == null) return
 		await groupManagerRemote.createGroup(name)
 	})
 })
 
-panelGroupMenus.listen('.group', XGroupElement.prototype,
+panelGroupMenus.listen(XGroupElement.tagName, XGroupElement.prototype,
 	XGroupElement.prototype.menuItemStatus)
 ExtensionPageMenus.preventDefault()
