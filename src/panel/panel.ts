@@ -75,13 +75,21 @@ class XGroupElement extends HTMLElement {
 	}
 
 	menuItemStatus() {
-		return { deleteGroup: { enabled: this.groupId !== undefined } }
+		return {
+			deleteGroup: { enabled: this.groupId !== undefined },
+			setColor: { enabled: this.groupId !== undefined },
+		}
 	}
 
 	async deleteGroup() {
 		if (this.groupId === undefined) return
 		if (!confirm(M.confirmDeleteGroup)) return
 		await groupManagerRemote.deleteGroup(this.groupId)
+	}
+
+	async setColor([color]: string[]) {
+		if (this.groupId === undefined) return
+		await groupManagerRemote.setGroupColor(this.groupId, color)
 	}
 }
 for (const key of XGroupElement.groupProps)

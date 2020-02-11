@@ -48,3 +48,21 @@ loadFavicon:
 	message: 'Load icons'
 moveToGroup:
 	message: 'Move to bookmark group'
+setColor:
+	message: 'Set color'
+'setColor.none':
+	message: 'None'
+'setColor.blue':
+	message: 'Blue'
+'setColor.red':
+	message: 'Red'
+'setColor.orange':
+	message: 'Orange'
+'setColor.purple':
+	message: 'Purple'
+'setColor.brown':
+	message: 'Brown'
+'setColor.yellow':
+	message: 'Yellow'
+'setColor.green':
+	message: 'Green'

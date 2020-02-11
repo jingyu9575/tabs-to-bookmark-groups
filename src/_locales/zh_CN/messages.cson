@@ -48,3 +48,21 @@ loadFavicon:
 	message: '载入图标'
 moveToGroup:
 	message: '移动到书签群组'
+setColor:
+	message: '设置颜色'
+'setColor.none':
+	message: '无'
+'setColor.blue':
+	message: '蓝'
+'setColor.red':
+	message: '红'
+'setColor.orange':
+	message: '橙'
+'setColor.purple':
+	message: '紫'
+'setColor.brown':
+	message: '棕'
+'setColor.yellow':
+	message: '黄'
+'setColor.green':
+	message: '绿'

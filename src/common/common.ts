@@ -25,5 +25,9 @@ export async function getWindowTabsToSave(windowId: number,
 	return tabs
 }
 
-export const panelGroupMenus = new ExtensionPageMenus('XGroupElement',
-	['deleteGroup'])
+export const panelGroupMenus = new ExtensionPageMenus('XGroupElement', [
+	'setColor', 'deleteGroup'
+], [
+	'setColor.none', 'setColor.blue', 'setColor.red', 'setColor.orange',
+	'setColor.purple', 'setColor.brown', 'setColor.yellow', 'setColor.green',
+])

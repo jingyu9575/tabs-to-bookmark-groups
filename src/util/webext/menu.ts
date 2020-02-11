@@ -1,19 +1,28 @@
-export class ExtensionPageMenus<K extends string> {
+import { unreachable } from "../error.js"
+
+export class ExtensionPageMenus<K extends string, S extends string> {
+	private readonly allIds: (K | S)[]
 	constructor(
 		private readonly prefix: string,
 		private readonly ids: K[],
-	) { prefix += '.' }
+		private readonly subIds: S[],
+	) {
+		this.prefix += '.'
+		this.allIds = [...this.ids, ...this.subIds]
+	}
 
 	register({
-		title = (id: K) => id as string,
+		title = (id: K | S) => id as string,
 		documentUrlPatterns = undefined as string[] | undefined,
 		contexts = [
 			'image', 'link', 'page', 'selection'
 		] as browser.menus.ContextType[],
 	} = {}) {
-		return this.ids.map(id => browser.menus.create({
+		return this.allIds.map(id => browser.menus.create({
 			id: `${this.prefix}${id}`,
 			title: title(id),
+			parentId: id.includes('.') ?
+				this.prefix + id.replace(/(.*)\..*/, '$1') : undefined,
 			documentUrlPatterns, contexts,
 		}))
 	}
@@ -22,8 +31,8 @@ export class ExtensionPageMenus<K extends string> {
 
 	listen(
 		selector: string,
-		handler: { [id in K]: (this: Element) => unknown },
-		statusLoader: (this: Element) => { [id in K]?: {
+		handler: { [id in K]: (this: Element, subId: string[]) => unknown },
+		statusLoader: (this: Element) => { [id in K | S]?: {
 			visible?: boolean, enabled?: boolean
 		} } = () => ({})
 	) {
@@ -52,15 +61,25 @@ export class ExtensionPageMenus<K extends string> {
 			if (typeof info.menuItemId !== 'string' ||
 				!info.menuItemId.startsWith(this.prefix) ||
 				info.targetElementId === undefined) return
-			const id = info.menuItemId.slice(this.prefix.length) as K
-			if (!this.ids.includes(id)) return
+			const id = info.menuItemId.slice(this.prefix.length) as K | S
+			if (!this.allIds.includes(id)) return
 			const target = browser.menus.getTargetElement(info.targetElementId)
 			if (!target || !(target instanceof Element)) return
 			const t2 = target instanceof SVGElement && target.ownerSVGElement ?
 				target.ownerSVGElement : target
 			const element = t2.closest(selector)
 			if (!element) return
-			handler[id].call(element)
+
+			const split = id.split('.'), subIds: string[] = []
+			while (split.length) {
+				const key = split.join('.')
+				if (key in handler) {
+					handler[key as K].call(element, subIds)
+					return
+				}
+				subIds.unshift(split.pop()!)
+			}
+			unreachable()
 		})
 	}
 

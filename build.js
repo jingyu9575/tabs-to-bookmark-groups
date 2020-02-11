@@ -73,7 +73,7 @@ async function buildMessages() {
 	let content = 'interface I18nMessages {\n'
 	for (const line of
 		(await fs.readFile(`${SRC}/${DEFAULT_MESSAGES}`, 'utf-8')).split(/\r|\n/)) {
-		const [matched, key] = line.match(/^(\w+):\s*(?:#|$)/) || []
+		const [matched, key] = line.match(/^(["'\w.]+):\s*(?:#|$)/) || []
 		if (matched) content += `\t${key}: string\n`
 	}
 	content += '}\n'

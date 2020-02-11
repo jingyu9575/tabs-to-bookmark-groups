@@ -111,7 +111,7 @@ export class GroupManager {
 			if (groupId === undefined) return
 			this.windowGroupMap.delete(windowId)
 			this.syncWrite(async () => {
-				if (!await this.isValidGroupId(groupId)) return
+				if (!await this.getGroupBookmark(groupId)) return
 				await this.saveGroupImpl(groupId, tabs)
 			})
 		})
@@ -244,7 +244,7 @@ export class GroupManager {
 	switchGroup(windowId: number, groupId?: string, unsavedGroupName?: string) {
 		return this.syncWrite(async () => {
 			let oldGroupId = this.windowGroupMap.get(windowId)
-			if (!await this.isValidGroupId(oldGroupId)) oldGroupId = undefined
+			if (!await this.getGroupBookmark(oldGroupId)) oldGroupId = undefined
 
 			// do not create new group with single blank tab, if not saving directly
 			const oldTabs = await getWindowTabsToSave(windowId,
@@ -331,13 +331,15 @@ export class GroupManager {
 		})
 	}
 
-	private async isValidGroupId(id?: string) {
-		if (id === undefined) return false
+	private async getGroupBookmark(id?: string) {
+		if (id === undefined) return undefined
 		try {
 			const bookmark = (await browser.bookmarks.get([id]))[0]
-			return bookmark && bookmark.type === 'folder'
-				&& bookmark.parentId === await this.rootId()
-		} catch { return false }
+			if (bookmark && bookmark.type === 'folder'
+				&& bookmark.parentId === await this.rootId())
+				return bookmark
+		} catch { }
+		return undefined
 	}
 
 	private pruneFaviconStorageScheduled = false
@@ -374,9 +376,21 @@ export class GroupManager {
 
 	appendGroup(groupId: string, tabs: PartialTab[]) {
 		return this.syncWrite(async () => {
-			if (!await this.isValidGroupId(groupId))
+			if (!await this.getGroupBookmark(groupId))
 				throw new Error("Invalid group id")
 			this.saveGroupImpl(groupId, tabs, 'append')
+		})
+	}
+
+	setGroupColor(groupId: string, color: string) {
+		return this.syncWrite(async () => {
+			const bookmark = await this.getGroupBookmark(groupId)
+			if (!bookmark) throw new Error("Invalid group id")
+			const [prefix] = color !== 'none' && [...GroupManager.colorMap]
+				.find(([, c]) => c === color) || [undefined]
+			const { name } = this.getGroupNameColor(bookmark)
+			await browser.bookmarks.update(bookmark.id,
+				{ title: prefix ? `${prefix} ${name}` : name })
 		})
 	}
 }
