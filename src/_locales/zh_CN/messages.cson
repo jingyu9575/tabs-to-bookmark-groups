@@ -58,8 +58,6 @@ setColor:
 	message: '橙'
 'setColor.purple':
 	message: '紫'
-'setColor.brown':
-	message: '棕'
 'setColor.yellow':
 	message: '黄'
 'setColor.green':

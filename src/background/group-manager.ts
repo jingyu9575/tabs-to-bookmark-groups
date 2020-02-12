@@ -25,7 +25,7 @@ export class GroupManager {
 		["\u{1F534}", "red"],
 		["\u{1F7E0}", "orange"],
 		["\u{1F7E3}", "purple"],
-		["\u{1F7E4}", "brown"],
+		// Removed: ["\u{1F7E4}", "brown"],
 		["\u{1F7E1}", "yellow"],
 		["\u{1F7E2}", "green"],
 	])

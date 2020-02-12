@@ -58,8 +58,6 @@ setColor:
 	message: 'Orange'
 'setColor.purple':
 	message: 'Purple'
-'setColor.brown':
-	message: 'Brown'
 'setColor.yellow':
 	message: 'Yellow'
 'setColor.green':

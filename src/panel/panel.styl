@@ -69,18 +69,6 @@ x-group
 	state-class('&', '.group-icon', 'locked')
 	state-class('&', '.group-icon', 'unsaved')
 
-	group-color(key, value)
-		&[color=\"{key}\"] .group-icon
-			color: value
-
-	group-color('blue', #0078d7)
-	group-color('red', #e81224)
-	group-color('orange', #f7630c)
-	group-color('purple', #886ce4)
-	group-color('brown', #8e562e)
-	group-color('yellow', #fff100)
-	group-color('green', #16c60c)
-
 	.group-name
 		overflow: hidden
 		white-space: nowrap
@@ -88,6 +76,25 @@ x-group
 
 	&[state='unsaved'] + &
 		border-block-start: 1px solid lightgray
+
+group-color(key, value)
+	x-group[color=\"{key}\"] .group-icon
+		color: value
+
+group-color('blue', dodgerblue)
+group-color('red', #ee0000)
+group-color('orange', darkorange)
+group-color('purple', mediumpurple)
+group-color('yellow', #c0b000)
+group-color('green', green)
+
+:root[data-theme='dark']
+	group-color('blue', deepskyblue)
+	group-color('red', #ff4050)
+	group-color('orange', darkorange)
+	group-color('purple', plum)
+	group-color('yellow', yellow)
+	group-color('green', limegreen)
 
 tool-button(size)
 	display: flex
