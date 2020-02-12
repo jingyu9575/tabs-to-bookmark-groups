@@ -23,6 +23,8 @@ state-class(root, parent, name)
 #groups
 	display: flex
 	flex-direction: column
+	--group-color-light: inherit // default
+	--group-color-dark: inherit
 
 x-group
 	display: flex
@@ -58,6 +60,7 @@ x-group
 
 	.group-icon
 		display: flex
+		color: var(--group-color-light)
 
 		.icon
 			width: 1.2em
@@ -76,25 +79,6 @@ x-group
 
 	&[state='unsaved'] + &
 		border-block-start: 1px solid lightgray
-
-group-color(key, value)
-	x-group[color=\"{key}\"] .group-icon
-		color: value
-
-group-color('blue', dodgerblue)
-group-color('red', #ee0000)
-group-color('orange', darkorange)
-group-color('purple', mediumpurple)
-group-color('yellow', #c0b000)
-group-color('green', green)
-
-:root[data-theme='dark']
-	group-color('blue', deepskyblue)
-	group-color('red', #ff4050)
-	group-color('orange', darkorange)
-	group-color('purple', plum)
-	group-color('yellow', yellow)
-	group-color('green', limegreen)
 
 tool-button(size)
 	display: flex

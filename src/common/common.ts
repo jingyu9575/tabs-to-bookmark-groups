@@ -25,9 +25,32 @@ export async function getWindowTabsToSave(windowId: number,
 	return tabs
 }
 
+export const groupColors = [
+	'blue', 'red', 'orange', 'purple', 'yellow', 'green'
+] as const
+export type GroupColor = (typeof groupColors)[number]
+
 export const panelGroupMenus = new ExtensionPageMenus('XGroupElement', [
 	'setColor', 'deleteGroup'
 ], [
 	'setColor.none', 'setColor.blue', 'setColor.red', 'setColor.orange',
 	'setColor.purple', 'setColor.yellow', 'setColor.green',
+])
+
+export const groupColorCodesLight = new Map<GroupColor, string>([
+	['blue', 'dodgerblue'],
+	['red', '#ee0000'],
+	['orange', 'darkorange'],
+	['purple', 'mediumpurple'],
+	['yellow', '#c0b000'],
+	['green', 'green'],
+])
+
+export const groupColorCodesDark = new Map<GroupColor, string>([
+	['blue', 'deepskyblue'],
+	['red', '#ff4050'],
+	['orange', 'darkorange'],
+	['purple', 'plum'],
+	['yellow', 'yellow'],
+	['green', 'limegreen'],
 ])

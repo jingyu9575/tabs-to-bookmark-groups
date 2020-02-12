@@ -1,4 +1,4 @@
-import { panelGroupMenus } from "../common/common.js";
+import { panelGroupMenus, groupColorCodesLight, groupColorCodesDark } from "../common/common.js";
 import { M } from "../util/webext/i18n.js";
 import { groupManager } from "./group-manager.js";
 
@@ -42,4 +42,73 @@ browser.menus.onShown.addListener(async ({ menuIds }) => {
 	}
 	browser.menus.update(moveToGroupMenu, { enabled: !!moveToGroupSubMenus.size })
 	browser.menus.refresh()
+})
+
+const originalIconSVG = fetch('/icons/icon.svg').then(r => r.text())
+	.then(s => new DOMParser().parseFromString(s, 'image/svg+xml')
+		.documentElement as Element)
+const colorNormalizer = document.createElement('canvas').getContext('2d')!
+
+groupManager.onWindowUpdate.listen(async ({ windowId, name, color }) => {
+	browser.browserAction.setTitle({
+		title: name === undefined ? M.extensionName :
+			M('browserActionTitle', name, M.extensionName),
+		windowId,
+	})
+
+	let colorCode: string | undefined
+	try {
+		const { colors } = await browser.theme.getCurrent()
+		if (colors) {
+			const c = colors.icons || colors.toolbar_text || colors.bookmark_text
+			colorCode = Array.isArray(c) ?
+				`${'rgba'.slice(0, c.length)}(${c.join(',')})` : c
+		}
+	} catch { }
+
+	if (color) {
+		let isDark: boolean | undefined
+		if (colorCode) try {
+			colorNormalizer.fillStyle = colorCode
+			if (colorNormalizer.fillStyle.startsWith('#'))
+				colorNormalizer.fillStyle += '7f' // force rgba
+			const [r, g, b] = colorNormalizer.fillStyle.replace('rgba(', '')
+				.split(',', 3).map(Number)
+			// https://en.wikipedia.org/wiki/YIQ
+			isDark = (r * 299 + g * 587 + b * 114) >= 128000
+		} catch { }
+		if (isDark === undefined)
+			isDark = matchMedia('(prefers-color-scheme: dark)').matches
+		colorCode = (isDark ? groupColorCodesDark : groupColorCodesLight).get(color)
+	}
+
+	if (!colorCode) {
+		browser.browserAction.setIcon({ windowId })
+		return
+	}
+
+	const SIZE_PX = 16
+	const size = Math.ceil(SIZE_PX * devicePixelRatio)
+	const img = new Image(size, size)
+	const node = (await originalIconSVG).cloneNode(true) as SVGSVGElement
+	node.style.fill = colorCode
+	node.setAttribute('width', '' + size)
+	node.setAttribute('height', '' + size)
+	await new Promise(resolve => {
+		img.addEventListener('load', resolve)
+		img.src = "data:image/svg+xml," + encodeURIComponent(node.outerHTML)
+	})
+	img.width = size
+	img.height = size
+
+	const canvas = document.createElement('canvas')
+	canvas.width = size
+	canvas.height = size
+	const context = canvas.getContext('2d')!
+	context.imageSmoothingEnabled = false
+	context.drawImage(img, 0, 0)
+	browser.browserAction.setIcon({
+		windowId,
+		imageData: { [SIZE_PX]: context.getImageData(0, 0, size, size) }
+	})
 })

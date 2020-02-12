@@ -1,7 +1,7 @@
 import { applyI18n, applyI18nAttr, M } from "../util/webext/i18n.js";
 import { importTemplate, defineStringAttribute } from "../util/dom.js";
 import {
-	groupManagerRemote, getWindowTabsToSave, panelGroupMenus
+	groupManagerRemote, getWindowTabsToSave, panelGroupMenus, groupColorCodesLight, GroupColor, groupColorCodesDark
 } from "../common/common.js";
 import { GroupState } from "../common/types.js";
 import { ExtensionPageMenus } from "../util/webext/menu.js";
@@ -73,9 +73,14 @@ class XGroupElement extends HTMLElement {
 	static readonly groupProps = ['state', 'name', 'color'] as const
 	static readonly observedAttributes = XGroupElement.groupProps
 	attributeChangedCallback(name: typeof XGroupElement.observedAttributes[number],
-		_oldValue: string | null, newValue: string | null) {
+		_oldValue: string | null, value: string | null) {
 		if (name === 'name') {
-			this.nameNode.textContent = newValue || ''
+			this.nameNode.textContent = value || ''
+		} else if (name === 'color') {
+			this.style.setProperty('--group-color-light',
+				value && groupColorCodesLight.get(value as GroupColor) || 'inherit')
+			this.style.setProperty('--group-color-dark',
+				value && groupColorCodesDark.get(value as GroupColor) || 'inherit')
 		}
 	}
 
@@ -101,7 +106,8 @@ class XGroupElement extends HTMLElement {
 
 	async setColor([color]: string[]) {
 		if (this.groupId === undefined) return
-		await groupManagerRemote.setGroupColor(this.groupId, color)
+		await groupManagerRemote.setGroupColor(this.groupId,
+			color !== 'none' ? color as GroupColor : undefined)
 	}
 }
 for (const key of XGroupElement.groupProps)

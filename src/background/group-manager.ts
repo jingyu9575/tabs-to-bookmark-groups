@@ -1,11 +1,12 @@
 import { M } from "../util/webext/i18n.js";
 import { CriticalSection } from "../util/promise.js";
 import { GroupState } from "../common/types.js";
-import { getWindowTabsToSave } from "../common/common.js";
+import { getWindowTabsToSave, GroupColor } from "../common/common.js";
 import { S, localSettings } from "./settings.js";
 import { PartialTab, WindowManager } from "./window-manager.js";
 import { remoteProxy } from "../util/webext/remote.js";
 import { SimpleStorage } from "../util/storage.js";
+import { SimpleEventListener } from "../util/event.js";
 
 const KEY_GROUP = 'group'
 
@@ -20,12 +21,11 @@ export class GroupManager {
 	private static commitedTransactionURL = browser.runtime.getURL(
 		'/pages/transaction.html?committed=1')
 
-	static readonly colorMap = new Map([
+	private static readonly symbolColorMap = new Map<string, GroupColor>([
 		["\u{1F535}", "blue"],
 		["\u{1F534}", "red"],
 		["\u{1F7E0}", "orange"],
 		["\u{1F7E3}", "purple"],
-		// Removed: ["\u{1F7E4}", "brown"],
 		["\u{1F7E1}", "yellow"],
 		["\u{1F7E2}", "green"],
 	])
@@ -91,9 +91,13 @@ export class GroupManager {
 
 	private readonly criticalSection = new CriticalSection()
 	private cachedRootId?: string
-	private readonly windowGroupMap = new Map<number, string | undefined>()
+	private readonly windowGroupMap = new Map<number, string>()
 	private readonly windowManager = new WindowManager()
 	private readonly faviconStorage = SimpleStorage.create('favicon')
+
+	readonly onWindowUpdate = new SimpleEventListener<[{
+		windowId: number, groupId?: string, name?: string, color?: GroupColor,
+	}]>()
 
 	private syncWrite<T>(fn: () => Promise<T>) {
 		return this.criticalSection.sync(fn).finally(() => panelRemote.reload())
@@ -103,8 +107,9 @@ export class GroupManager {
 		await localSettings.initialization
 		const windows = await browser.windows.getAll()
 		const onCreated = async ({ id }: browser.windows.Window) => {
-			browser.sessions.getWindowValue(id!, KEY_GROUP).then(
-				group => { this.windowGroupMap.set(id!, group as string) })
+			browser.sessions.getWindowValue(id!, KEY_GROUP).then(group => {
+				void this.setWindowGroup(id!, group as string)
+			})
 		}
 		browser.windows.onCreated.addListener(onCreated)
 		this.windowManager.onWindowRemoved.listen((windowId, tabs) => {
@@ -153,9 +158,17 @@ export class GroupManager {
 	}
 
 	private getGroupNameColor(bookmark: browser.bookmarks.BookmarkTreeNode) {
-		const color = GroupManager.colorMap.get(bookmark.title.slice(0, 2))
+		const color = GroupManager.symbolColorMap.get(bookmark.title.slice(0, 2))
 		if (!color) return { name: bookmark.title }
-		return { name: bookmark.title.slice(2).trimStart(), color: color }
+		return { name: bookmark.title.slice(2).trimStart(), color }
+	}
+
+	private async setWindowGroup(windowId: number, groupId: string) {
+		this.windowGroupMap.set(windowId, groupId)
+		const bookmark = await this.getGroupBookmark(groupId)
+		this.onWindowUpdate.dispatch(bookmark ? {
+			windowId, groupId, ...this.getGroupNameColor(bookmark),
+		} : { windowId })
 	}
 
 	listGroups(windowId?: number) {
@@ -184,8 +197,8 @@ export class GroupManager {
 	private async createGroupImpl(name: string) {
 		return browser.bookmarks.create({
 			parentId: await this.rootId(),
-			title: (!S.autoSetColor ? '' : [...GroupManager.colorMap.keys()][
-				Math.floor(Math.random() * GroupManager.colorMap.size)] + ' '
+			title: (!S.autoSetColor ? '' : [...GroupManager.symbolColorMap.keys()][
+				Math.floor(Math.random() * GroupManager.symbolColorMap.size)] + ' '
 			) + name,
 			index: Number.MAX_SAFE_INTEGER,
 		})
@@ -267,7 +280,7 @@ export class GroupManager {
 			}
 
 			if (groupId !== oldGroupId) { // load new group
-				this.windowGroupMap.set(windowId, undefined)
+				this.windowGroupMap.delete(windowId)
 				await browser.sessions.removeWindowValue(windowId, KEY_GROUP)
 
 				const bookmarks = await browser.bookmarks.getChildren(groupId)
@@ -319,7 +332,7 @@ export class GroupManager {
 				}
 			}
 
-			this.windowGroupMap.set(windowId, groupId)
+			void this.setWindowGroup(windowId, groupId)
 			await browser.sessions.setWindowValue(windowId, KEY_GROUP, groupId)
 		})
 	}
@@ -385,15 +398,19 @@ export class GroupManager {
 		})
 	}
 
-	setGroupColor(groupId: string, color: string) {
+	setGroupColor(groupId: string, color: GroupColor | undefined) {
 		return this.syncWrite(async () => {
 			const bookmark = await this.getGroupBookmark(groupId)
 			if (!bookmark) throw new Error("Invalid group id")
-			const [prefix] = color !== 'none' && [...GroupManager.colorMap]
+			const [prefix] = color && [...GroupManager.symbolColorMap]
 				.find(([, c]) => c === color) || [undefined]
 			const { name } = this.getGroupNameColor(bookmark)
 			await browser.bookmarks.update(bookmark.id,
 				{ title: prefix ? `${prefix} ${name}` : name })
+
+			for (const [windowId, value] of this.windowGroupMap)
+				if (value === groupId)
+					this.onWindowUpdate.dispatch({ windowId, groupId, name, color })
 		})
 	}
 }

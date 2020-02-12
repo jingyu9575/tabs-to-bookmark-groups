@@ -66,3 +66,5 @@ groupN:
 	message: 'Group $1'
 autoSetColor:
 	message: 'Automatically set a color for every new group'
+browserActionTitle:
+	message: '$1 - $2'
