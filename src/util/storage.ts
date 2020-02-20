@@ -36,17 +36,17 @@ export async function* idbCursorRequest<T extends IDBCursor>(
 	}
 }
 
-export class SimpleStorage {
+export class SimpleStorage<K extends IDBValidKey, V> {
 	private database!: IDBDatabase
 
 	private constructor(private readonly objectStoreName: string) { }
 
-	static async create(databaseName = 'simpleStorage', {
+	static async create<K extends IDBValidKey, V>(databaseName = 'simpleStorage', {
 		version = undefined as number | undefined,
 		objectStoreName = 'simpleStorage',
 		migrate = async () => { },
 	} = {}) {
-		const that = new this(objectStoreName)
+		const that = new this<K, V>(objectStoreName)
 		const request = indexedDB.open(databaseName, version)
 		request.onupgradeneeded = async event => {
 			const db = request.result as IDBDatabase
@@ -76,43 +76,48 @@ export class SimpleStorage {
 		}
 	}
 
+	get currentTransaction() {
+		if (!this.currentObjectStore) return undefined
+		return idbTransaction(this.currentObjectStore.transaction)
+	}
+
 	objectStore(mode: 'readonly' | 'readwrite') {
 		if (this.currentObjectStore) return this.currentObjectStore
 		return this.database.transaction(this.objectStoreName, mode)
 			.objectStore(this.objectStoreName)
 	}
 
-	get<T>(key: IDBValidKey) {
-		return idbRequest<T>(this.objectStore('readonly').get(key))
+	get(key: K) {
+		return idbRequest<V | undefined>(this.objectStore('readonly').get(key))
 	}
 
 	getAll(range: IDBKeyRange) {
-		return idbRequest(this.objectStore('readonly').getAll(range))
+		return idbRequest<V[]>(this.objectStore('readonly').getAll(range))
 	}
 
 	keys() {
-		return idbRequest(this.objectStore('readonly').getAllKeys())
+		return idbRequest(this.objectStore('readonly').getAllKeys()) as Promise<K[]>
 	}
 
 	entries(range: IDBKeyRange, mode: 'readonly' | 'readwrite') {
 		return idbCursorRequest(this.objectStore(mode).openCursor(range))
 	}
 
-	set(key: IDBValidKey, value: unknown) {
+	set(key: K, value: V) {
 		return idbRequest(this.objectStore('readwrite').put(value, key))
 	}
 
-	async insert<T>(key: IDBValidKey, fn: () => T) {
+	async insert(key: K, fn: () => V) {
 		const store = this.objectStore('readwrite')
 		const cursor = await idbRequest(
 			store.openCursor(key)) as IDBCursorWithValue
-		if (cursor) return cursor.value as T
+		if (cursor) return cursor.value as V
 		const value = fn()
 		await idbRequest(store.add(value, key))
 		return value
 	}
 
-	delete(key: IDBValidKey | IDBKeyRange) {
+	delete(key: K | IDBKeyRange) {
 		return idbRequest(this.objectStore('readwrite').delete(key))
 	}
 

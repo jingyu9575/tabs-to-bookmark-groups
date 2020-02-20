@@ -34,8 +34,8 @@ browser.tabs.getCurrent().then(async ({ id }) => {
 	if (Number(searchParams.get('discardFavicon'))) {
 		const bookmarkId = searchParams.get('id')
 		if (bookmarkId) try {
-			const faviconStorage = await SimpleStorage.create('favicon')
-			const faviconURL = await faviconStorage.get<string>(bookmarkId) || ''
+			const faviconStorage = await SimpleStorage.create<string, string>('favicon')
+			const faviconURL = await faviconStorage.get(bookmarkId) || ''
 			if (faviconURL.slice(0, 5).toLowerCase() === 'data:') {
 				const link = document.createElement('link')
 				link.rel = 'icon'

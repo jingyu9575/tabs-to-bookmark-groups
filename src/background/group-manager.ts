@@ -12,7 +12,13 @@ const KEY_GROUP = 'group'
 
 type TabsCreateDetails = Parameters<typeof browser.tabs.create>[0]
 
+interface StoredTabInfo {
+	cookieStoreId?: string
+}
+
 const panelRemote = remoteProxy<import('../panel/panel').PanelRemote>('PanelRemote')
+
+const NO_CONTAINER = 'firefox-default'
 
 export class GroupManager {
 	private static markerURL = browser.runtime.getURL('/pages/marker.html')
@@ -93,8 +99,9 @@ export class GroupManager {
 	private cachedRootId?: string
 	private readonly windowGroupMap = new Map<number, string>()
 	private readonly windowManager = new WindowManager()
-	private readonly faviconStorage = SimpleStorage.create('favicon')
-	private readonly tabInfoStorage = SimpleStorage.create('tab-info')
+	private readonly faviconStorage = SimpleStorage.create<string, string>('favicon')
+	private readonly tabInfoStorage =
+		SimpleStorage.create<string, StoredTabInfo>('tab-info')
 
 	readonly onWindowUpdate = new SimpleEventListener<[{
 		windowId: number, groupId?: string, name?: string, color?: GroupColor,
@@ -224,7 +231,7 @@ export class GroupManager {
 		}
 
 		const faviconURLUpdates: [string, string][] = []
-		const tabInfoUpdates: [string, Partial<PartialTab>][] = []
+		const tabInfoUpdates: [string, StoredTabInfo][] = []
 		for (const tab of tabs!) {
 			const promise = browser.bookmarks.create({
 				parentId: groupId,
@@ -253,7 +260,7 @@ export class GroupManager {
 			await storage.transaction('readwrite', () => {
 				for (const [id, info] of tabInfoUpdates)
 					void storage.set(id, info)
-				return idbTransaction(storage.objectStore('readwrite').transaction)
+				return storage.currentTransaction!
 			})
 		} catch (error) { console.error(error) }
 
@@ -329,8 +336,14 @@ export class GroupManager {
 						const discardedAndPinned = info.discarded && info.pinned
 						if (discardedAndPinned) info.pinned = false
 
-						if (tabInfoStorage)
-							Object.assign(info, await tabInfoStorage.get(bookmark.id))
+						if (tabInfoStorage) {
+							const value = await tabInfoStorage.get(bookmark.id)
+							if (value) {
+								if (value.cookieStoreId &&
+									value.cookieStoreId !== NO_CONTAINER)
+									info.cookieStoreId = value.cookieStoreId
+							}
+						}
 
 						for (; ;) try {
 							const tab = await browser.tabs.create({
@@ -341,7 +354,7 @@ export class GroupManager {
 							break
 						} catch (error) {
 							if (info.cookieStoreId &&
-								info.cookieStoreId !== 'firefox-default' &&
+								info.cookieStoreId !== NO_CONTAINER &&
 								error && /\bNo cookie store exists\b/
 									.test(`${error.message}`)) {
 								info.cookieStoreId = undefined
