@@ -8,6 +8,8 @@ export class Settings {
 	discardInactiveTabsFavicon: 'load' | '' = ''
 
 	theme = 'auto'
+	toolbarIcon: 'bookmark-folder' | 'folder' | 'folder-filled' = 'bookmark-folder'
+	groupIcon: 'bookmark-folder' | 'folder' | 'folder-filled' = 'folder'
 	autoSetColor = false
 }
 

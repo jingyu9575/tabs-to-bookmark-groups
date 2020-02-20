@@ -97,7 +97,7 @@ export class GroupManager {
 
 	private readonly criticalSection = new CriticalSection()
 	private cachedRootId?: string
-	private readonly windowGroupMap = new Map<number, string>()
+	private readonly windowGroupMap = new Map<number, string | undefined>()
 	private readonly windowManager = new WindowManager()
 	private readonly faviconStorage = SimpleStorage.create<string, string>('favicon')
 	private readonly tabInfoStorage =
@@ -171,7 +171,7 @@ export class GroupManager {
 		return { name: bookmark.title.slice(2).trimStart(), color }
 	}
 
-	private async setWindowGroup(windowId: number, groupId: string) {
+	private async setWindowGroup(windowId: number, groupId: string | undefined) {
 		this.windowGroupMap.set(windowId, groupId)
 		const bookmark = await this.getGroupBookmark(groupId)
 		this.onWindowUpdate.dispatch(bookmark ? {
@@ -454,6 +454,11 @@ export class GroupManager {
 				if (value === groupId)
 					this.onWindowUpdate.dispatch({ windowId, groupId, name, color })
 		})
+	}
+
+	refreshAllWindowColor() {
+		for (const [windowId, groupId] of [...this.windowGroupMap])
+			void this.setWindowGroup(windowId, groupId)
 	}
 }
 export const groupManager = new GroupManager()

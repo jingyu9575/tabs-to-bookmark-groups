@@ -68,3 +68,7 @@ autoSetColor:
 	message: '自动为新群组指定颜色'
 browserActionTitle:
 	message: '$1 - $2'
+toolbarIcon:
+	message: '工具栏图标：'
+groupIcon:
+	message: '群组图标：'

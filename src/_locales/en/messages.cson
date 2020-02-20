@@ -68,3 +68,7 @@ autoSetColor:
 	message: 'Automatically set a color for every new group'
 browserActionTitle:
 	message: '$1 - $2'
+toolbarIcon:
+	message: 'Toolbar icon:'
+groupIcon:
+	message: 'Group icon:'

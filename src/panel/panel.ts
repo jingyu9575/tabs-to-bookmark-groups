@@ -7,6 +7,7 @@ import { GroupState } from "../common/types.js";
 import { ExtensionPageMenus } from "../util/webext/menu.js";
 import { registerRemoteHandler } from "../util/webext/remote.js";
 import { setImmediate } from "../util/set-immediate.js";
+import { remoteSettings } from "../common/settings.js";
 
 applyI18n()
 applyI18nAttr('title')
@@ -116,6 +117,12 @@ customElements.define(XGroupElement.tagName, XGroupElement)
 
 browser.windows.getCurrent().then(async (currentWindow) => {
 	windowId = currentWindow.id!
+
+	const groupIcon = await remoteSettings.get('groupIcon')
+	for (const icon of (document.getElementById(
+		'x-group-template') as HTMLTemplateElement).content
+		.querySelectorAll('.state-open use, .state-closed use'))
+		icon.setAttribute('href', `../icons/extra-icons.svg#${groupIcon}`)
 
 	const groups = await groupManagerRemote.listGroups(windowId)
 	for (const group of groups) {

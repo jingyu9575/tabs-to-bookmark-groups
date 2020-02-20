@@ -1,6 +1,7 @@
 import { panelGroupMenus, groupColorCodesLight, groupColorCodesDark } from "../common/common.js";
 import { M } from "../util/webext/i18n.js";
 import { groupManager } from "./group-manager.js";
+import { S, localSettings } from "./settings.js";
 
 export { }
 
@@ -44,9 +45,9 @@ browser.menus.onShown.addListener(async ({ menuIds }) => {
 	browser.menus.refresh()
 })
 
-const originalIconSVG = fetch('/icons/icon.svg').then(r => r.text())
+const extraIconsSVG = fetch('/icons/extra-icons.svg').then(r => r.text())
 	.then(s => new DOMParser().parseFromString(s, 'image/svg+xml')
-		.documentElement as Element)
+		.documentElement as Element as SVGSVGElement)
 const colorNormalizer = document.createElement('canvas').getContext('2d')!
 
 groupManager.onWindowUpdate.listen(async ({ windowId, name, color }) => {
@@ -56,42 +57,39 @@ groupManager.onWindowUpdate.listen(async ({ windowId, name, color }) => {
 		windowId,
 	})
 
-	let colorCode: string | undefined
+	let themeColorCode: string | undefined
 	try {
-		const { colors } = await browser.theme.getCurrent()
+		const { colors } = await browser.theme.getCurrent(windowId)
 		if (colors) {
 			const c = colors.icons || colors.toolbar_text || colors.bookmark_text
-			colorCode = Array.isArray(c) ?
+			themeColorCode = Array.isArray(c) ?
 				`${'rgba'.slice(0, c.length)}(${c.join(',')})` : c
 		}
 	} catch { }
 
-	if (color) {
-		let isDark: boolean | undefined
-		if (colorCode) try {
-			colorNormalizer.fillStyle = colorCode
-			if (colorNormalizer.fillStyle.startsWith('#'))
-				colorNormalizer.fillStyle += '7f' // force rgba
-			const [r, g, b] = colorNormalizer.fillStyle.replace('rgba(', '')
-				.split(',', 3).map(Number)
-			// https://en.wikipedia.org/wiki/YIQ
-			isDark = (r * 299 + g * 587 + b * 114) >= 128000
-		} catch { }
-		if (isDark === undefined)
-			isDark = matchMedia('(prefers-color-scheme: dark)').matches
-		colorCode = (isDark ? groupColorCodesDark : groupColorCodesLight).get(color)
-	}
-
-	if (!colorCode) {
-		browser.browserAction.setIcon({ windowId })
-		return
-	}
+	let isDark: boolean | undefined
+	if (themeColorCode) try {
+		colorNormalizer.fillStyle = themeColorCode
+		if (colorNormalizer.fillStyle.startsWith('#'))
+			colorNormalizer.fillStyle += '7f' // force rgba
+		const [r, g, b] = colorNormalizer.fillStyle.replace('rgba(', '')
+			.split(',', 3).map(Number)
+		// https://en.wikipedia.org/wiki/YIQ
+		isDark = (r * 299 + g * 587 + b * 114) >= 128000
+	} catch { }
+	if (isDark === undefined)
+		isDark = matchMedia('(prefers-color-scheme: dark)').matches
+	const colorCode = (isDark ? groupColorCodesDark : groupColorCodesLight)
+		.get(color)!
 
 	const SIZE_PX = 16
 	const size = Math.ceil(SIZE_PX * devicePixelRatio)
 	const img = new Image(size, size)
-	const node = (await originalIconSVG).cloneNode(true) as SVGSVGElement
-	node.style.fill = colorCode
+	const node = (await extraIconsSVG).cloneNode(true) as SVGSVGElement
+	const symbol = node.getElementById(S.toolbarIcon)
+	node.setAttribute('viewBox', symbol.getAttribute('viewBox')!)
+	node.innerHTML = symbol.innerHTML
+	node.style.color = colorCode
 	node.setAttribute('width', '' + size)
 	node.setAttribute('height', '' + size)
 	await new Promise(resolve => {
@@ -112,3 +110,5 @@ groupManager.onWindowUpdate.listen(async ({ windowId, name, color }) => {
 		imageData: { [SIZE_PX]: context.getImageData(0, 0, size, size) }
 	})
 })
+// no need to refresh on browser start
+localSettings.listen('toolbarIcon', () => groupManager.refreshAllWindowColor(), 'skip')

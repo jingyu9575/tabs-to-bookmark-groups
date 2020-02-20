@@ -28,6 +28,18 @@ append body
 						option(value='' data-i18n='light')
 						option(value='dark' data-i18n='dark')
 				label.input-label
+					span(data-i18n='toolbarIcon')
+					select(data-key='toolbarIcon')
+						option(value='bookmark-folder') 1
+						option(value='folder') 2
+						option(value='folder-filled') 3
+				label.input-label
+					span(data-i18n='groupIcon')
+					select(data-key='groupIcon')
+						option(value='bookmark-folder') 1
+						option(value='folder') 2
+						option(value='folder-filled') 3
+				label.input-label
 					input(type='checkbox' data-key='autoSetColor')
 					span(data-i18n='autoSetColor')
 				hr

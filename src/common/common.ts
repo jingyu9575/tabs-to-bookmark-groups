@@ -37,7 +37,8 @@ export const panelGroupMenus = new ExtensionPageMenus('XGroupElement', [
 	'setColor.purple', 'setColor.yellow', 'setColor.green',
 ])
 
-export const groupColorCodesLight = new Map<GroupColor, string>([
+export const groupColorCodesLight = new Map<GroupColor | undefined, string>([
+	[undefined, 'rgba(12, 12, 13, 0.7)'],
 	['blue', 'dodgerblue'],
 	['red', '#ee0000'],
 	['orange', 'darkorange'],
@@ -46,7 +47,8 @@ export const groupColorCodesLight = new Map<GroupColor, string>([
 	['green', 'green'],
 ])
 
-export const groupColorCodesDark = new Map<GroupColor, string>([
+export const groupColorCodesDark = new Map<GroupColor | undefined, string>([
+	[undefined, 'rgba(249, 249, 250, 0.7)'],
 	['blue', 'deepskyblue'],
 	['red', '#ff4050'],
 	['orange', 'darkorange'],
