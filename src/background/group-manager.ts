@@ -5,7 +5,7 @@ import { getWindowTabsToSave, GroupColor } from "../common/common.js";
 import { S, localSettings } from "./settings.js";
 import { PartialTab, WindowManager } from "./window-manager.js";
 import { remoteProxy } from "../util/webext/remote.js";
-import { SimpleStorage } from "../util/storage.js";
+import { SimpleStorage, idbTransaction } from "../util/storage.js";
 import { SimpleEventListener } from "../util/event.js";
 
 const KEY_GROUP = 'group'
@@ -94,6 +94,7 @@ export class GroupManager {
 	private readonly windowGroupMap = new Map<number, string>()
 	private readonly windowManager = new WindowManager()
 	private readonly faviconStorage = SimpleStorage.create('favicon')
+	private readonly tabInfoStorage = SimpleStorage.create('tab-info')
 
 	readonly onWindowUpdate = new SimpleEventListener<[{
 		windowId: number, groupId?: string, name?: string, color?: GroupColor,
@@ -124,10 +125,10 @@ export class GroupManager {
 
 		for (const w of windows) void onCreated(w)
 
-		this.schedulePruneFaviconStorage()
+		this.schedulePruneSecondaryStorage()
 		browser.idle.onStateChanged.addListener(state => {
-			if (state === 'idle' && this.pruneFaviconStorageScheduled)
-				this.pruneFaviconStorage()
+			if (state === 'idle' && this.pruneSecondaryStorageScheduled)
+				void this.pruneSecondaryStorage()
 		})
 	})
 
@@ -223,18 +224,20 @@ export class GroupManager {
 		}
 
 		const faviconURLUpdates: [string, string][] = []
+		const tabInfoUpdates: [string, Partial<PartialTab>][] = []
 		for (const tab of tabs!) {
 			const promise = browser.bookmarks.create({
 				parentId: groupId,
 				index: Number.MAX_SAFE_INTEGER,
 				...GroupManager.converter.toBookmark(tab)
 			}) // await later
-			let { favIconUrl } = tab
+			let { favIconUrl, cookieStoreId } = tab
 			// Bug 1497587: favIconUrl is data URL (at least Firefox 64+)
 			if (!favIconUrl || favIconUrl.slice(0, 5).toLowerCase() !== 'data:')
 				favIconUrl = ''
 			const { id } = (await promise)!
 			faviconURLUpdates.push([id, favIconUrl])
+			tabInfoUpdates.push([id, { cookieStoreId }])
 		}
 
 		// secondary storage, no await
@@ -245,6 +248,15 @@ export class GroupManager {
 			})
 		})
 
+		try {
+			const storage = await this.tabInfoStorage
+			await storage.transaction('readwrite', () => {
+				for (const [id, info] of tabInfoUpdates)
+					void storage.set(id, info)
+				return idbTransaction(storage.objectStore('readwrite').transaction)
+			})
+		} catch (error) { console.error(error) }
+
 		if (!append) {
 			await browser.bookmarks.update(transactionBookmarkId!, {
 				title: 'Transaction (committed)',
@@ -253,7 +265,7 @@ export class GroupManager {
 			for (const { id } of existingBookmarks!)
 				await browser.bookmarks.remove(id)
 			await browser.bookmarks.remove(transactionBookmarkId!)
-			this.schedulePruneFaviconStorage()
+			this.schedulePruneSecondaryStorage()
 		}
 	}
 
@@ -303,6 +315,7 @@ export class GroupManager {
 					await browser.tabs.remove(tabs.map(v => v.id!))
 				}
 				if (bookmarks.length) {
+					const tabInfoStorage = await this.tabInfoStorage.catch(() => { })
 					let activeTab: browser.tabs.Tab | undefined
 					for (const bookmark of bookmarks) {
 						const v = GroupManager.converter.toTab(bookmark,
@@ -315,6 +328,9 @@ export class GroupManager {
 						// workaround "Pinned tabs cannot be created and discarded"
 						const discardedAndPinned = v.discarded && v.pinned
 						if (discardedAndPinned) v.pinned = false
+
+						if (tabInfoStorage)
+							Object.assign(v, await tabInfoStorage.get(bookmark.id))
 
 						try {
 							const tab = await browser.tabs.create({
@@ -343,7 +359,7 @@ export class GroupManager {
 				if (entryGroupId === groupId)
 					this.windowGroupMap.delete(entryKey)
 			await browser.bookmarks.removeTree(groupId)
-			this.schedulePruneFaviconStorage()
+			this.schedulePruneSecondaryStorage()
 		})
 	}
 
@@ -358,21 +374,23 @@ export class GroupManager {
 		return undefined
 	}
 
-	private pruneFaviconStorageScheduled = false
+	private pruneSecondaryStorageScheduled = false
 
-	private pruneFaviconStorage() {
-		this.pruneFaviconStorageScheduled = false
-		void this.faviconStorage.then(async storage => {
-			// not in critical section; assume favicon is saved after bookmarks
-			const [root] = await browser.bookmarks.getSubTree(await this.rootId())
-			const idList: string[] = []
-			function addSubTree(node: typeof root) {
-				idList.push(node.id)
-				if (node.children) node.children.forEach(addSubTree)
-			}
-			addSubTree(root)
-			const idSet = new Set<string>(idList)
+	private async pruneSecondaryStorage() {
+		this.pruneSecondaryStorageScheduled = false
+		const storages = [await this.faviconStorage, await this.tabInfoStorage]
 
+		// not in critical section; assume favicon is saved after bookmarks
+		const [root] = await browser.bookmarks.getSubTree(await this.rootId())
+		const idList: string[] = []
+		function addSubTree(node: typeof root) {
+			idList.push(node.id)
+			if (node.children) node.children.forEach(addSubTree)
+		}
+		addSubTree(root)
+		const idSet = new Set<string>(idList)
+
+		for (const storage of storages) {
 			const existingKeys = await storage.keys()
 			void storage.transaction('readwrite', async () => {
 				for (const id of existingKeys) {
@@ -380,14 +398,14 @@ export class GroupManager {
 					void storage.delete(id)
 				}
 			})
-		})
+		}
 	}
 
-	private async schedulePruneFaviconStorage() {
+	private async schedulePruneSecondaryStorage() {
 		if ((await browser.idle.queryState(30)) === 'idle')
-			this.pruneFaviconStorage()
+			void this.pruneSecondaryStorage()
 		else
-			this.pruneFaviconStorageScheduled = true
+			this.pruneSecondaryStorageScheduled = true
 	}
 
 	appendGroup(groupId: string, tabs: PartialTab[]) {

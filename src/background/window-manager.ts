@@ -2,7 +2,7 @@ import { mapInsert } from "../util/util.js"
 import { SimpleEventListener } from "../util/event.js";
 
 export interface PartialTab extends Pick<browser.tabs.Tab,
-	'id' | 'title' | 'url' | 'active' | 'pinned' | 'favIconUrl'> { }
+	'id' | 'title' | 'url' | 'active' | 'pinned' | 'favIconUrl' | 'cookieStoreId'> { }
 
 function arrayRemoveOne<T>(arr: T[], item: T) {
 	const i = arr.indexOf(item)

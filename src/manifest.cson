@@ -19,6 +19,7 @@ permissions: [
 	'unlimitedStorage'
 	'contextualIdentities'
 	'idle'
+	'cookies'
 ]
 browser_action:
 	default_icon: 'icons/icon-color.svg#dark'
