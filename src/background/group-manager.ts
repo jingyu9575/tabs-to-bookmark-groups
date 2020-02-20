@@ -379,9 +379,9 @@ export class GroupManager {
 
 	deleteGroup(groupId: string) {
 		return this.syncWrite(async () => {
-			for (const [entryKey, entryGroupId] of this.windowGroupMap)
+			for (const [windowId, entryGroupId] of this.windowGroupMap)
 				if (entryGroupId === groupId)
-					this.windowGroupMap.delete(entryKey)
+					this.setWindowGroup(windowId, undefined)
 			await browser.bookmarks.removeTree(groupId)
 			this.schedulePruneSecondaryStorage()
 		})
