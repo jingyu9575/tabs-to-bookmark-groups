@@ -318,27 +318,38 @@ export class GroupManager {
 					const tabInfoStorage = await this.tabInfoStorage.catch(() => { })
 					let activeTab: browser.tabs.Tab | undefined
 					for (const bookmark of bookmarks) {
-						const v = GroupManager.converter.toTab(bookmark,
+						const info = GroupManager.converter.toTab(bookmark,
 							S.discardInactiveTabs && !!S.discardInactiveTabsFavicon)
-						v.discarded = S.discardInactiveTabs &&
-							!S.discardInactiveTabsFavicon && !!v.url &&
-							!v.url.trimStart().toLowerCase().startsWith('about:')
-						if (!v.discarded) delete v.title
+						info.discarded = S.discardInactiveTabs &&
+							!S.discardInactiveTabsFavicon && !!info.url &&
+							!info.url.trimStart().toLowerCase().startsWith('about:')
+						if (!info.discarded) delete info.title
 
 						// workaround "Pinned tabs cannot be created and discarded"
-						const discardedAndPinned = v.discarded && v.pinned
-						if (discardedAndPinned) v.pinned = false
+						const discardedAndPinned = info.discarded && info.pinned
+						if (discardedAndPinned) info.pinned = false
 
 						if (tabInfoStorage)
-							Object.assign(v, await tabInfoStorage.get(bookmark.id))
+							Object.assign(info, await tabInfoStorage.get(bookmark.id))
 
-						try {
+						for (; ;) try {
 							const tab = await browser.tabs.create({
 								windowId, index: Number.MAX_SAFE_INTEGER,
-								...v, active: false,
+								...info, active: false,
 							})
-							if (!activeTab || v.active) activeTab = tab
-						} catch (error) { console.error(error) }
+							if (!activeTab || info.active) activeTab = tab
+							break
+						} catch (error) {
+							if (info.cookieStoreId &&
+								info.cookieStoreId !== 'firefox-default' &&
+								error && /\bNo cookie store exists\b/
+									.test(`${error.message}`)) {
+								info.cookieStoreId = undefined
+								continue
+							}
+							console.error(error)
+							break
+						}
 					}
 					if (coverTab) {
 						if (activeTab)
